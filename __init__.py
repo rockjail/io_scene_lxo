@@ -50,7 +50,7 @@ if "bpy" in locals():
 
 
 class _choices:
-    __slots__ = (
+    """__slots__ = (
         "add_subd_mod",
         "load_hidden",
         #"skel_to_arm",
@@ -59,7 +59,7 @@ class _choices:
         #"cancel_search",
         #"images",
         "recursive",
-    )
+    )"""
 
     def __init__(
         self,
@@ -67,9 +67,11 @@ class _choices:
         LOAD_HIDDEN=False,
         SKEL_TO_ARM=True,
         USE_EXISTING_MATERIALS=False,
+        clean_import = False
     ):
         self.add_subd_mod = ADD_SUBD_MOD
         self.load_hidden = LOAD_HIDDEN
+        self.clean_import = clean_import
         #self.skel_to_arm = SKEL_TO_ARM
         #self.use_existing_materials = USE_EXISTING_MATERIALS
         #self.search_paths = []
@@ -130,6 +132,11 @@ class IMPORT_OT_lxo(bpy.types.Operator):
         description="Load object layers that have been marked as hidden",
         default=False,
     )
+    CLEAN_IMPORT: BoolProperty(
+        name="Clean Import",
+        description="Import to empty scene",
+        default=False,
+    )
     # SKEL_TO_ARM: BoolProperty(
     #     name="Create Armature",
     #     description="Create an armature from an embedded Skelegon rig",
@@ -150,6 +157,7 @@ class IMPORT_OT_lxo(bpy.types.Operator):
         ch = bpy.types.Scene.ch
         ch.add_subd_mod = self.ADD_SUBD_MOD
         ch.load_hidden = self.LOAD_HIDDEN
+        ch.clean_import = self.CLEAN_IMPORT
         # ch.skel_to_arm = self.SKEL_TO_ARM
         # ch.use_existing_materials = self.USE_EXISTING_MATERIALS
         #ch.search_paths = []

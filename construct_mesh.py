@@ -34,6 +34,9 @@ def build_objects(lxo, ch):
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode="OBJECT")
 
+    if ch.clean_import:
+        bpy.ops.wm.read_homefile(use_empty=True)
+
     # create all items
     for lxoItem in lxo.items:
         if lxoItem.LAYR is None:
