@@ -57,7 +57,14 @@ def build_objects(lxo, ch):
             object_data = bpy.data.cameras.new(itemName)
             object_data.lens = int(lxoItem.channel['focalLen'] * 1000) # saved as float in meters, we want mm
             #object_data.dof.aperture_fstop = lxoItem.channel['fStop']
-
+        elif lxoItem.typename == "areaLight":
+            object_data = bpy.data.lights.new(itemName, 'AREA')
+        elif lxoItem.typename == "spotLight":
+            object_data = bpy.data.lights.new(itemName, 'SPOT')
+        elif lxoItem.typename == "pointLight":
+            object_data = bpy.data.lights.new(itemName, 'POINT')
+        elif lxoItem.typename == "sunLight":
+            object_data = bpy.data.lights.new(itemName, 'SUN')
         
         ob = bpy.data.objects.new(name = itemName, object_data = object_data)
         scn = bpy.context.collection
