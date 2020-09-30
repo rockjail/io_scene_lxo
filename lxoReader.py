@@ -76,9 +76,9 @@ class LXOItem(object):
         self.name = name
         self.vname = None
         self.typename = typename
-        self.CHAN = []
+        self.channel = {}
         self.GRAD = []
-        self.stringChannels = []
+        #self.stringChannels = []
         self.CHNL = []
         self.CHNV = {}
         self.itemTags = []
@@ -86,7 +86,7 @@ class LXOItem(object):
         self.UCHN = []
         self.CHNC = []
         self.CLNK = []
-        self.graphLinks = []
+        self.graphLinks = {}
         self.LAYR = None
 
 class LXOFile(object):
@@ -153,12 +153,12 @@ class LXOFile(object):
 
         for item in self.__items:
             print(item.name, item.vname, item.typename)
-            for ch in item.CHAN:
-                print("", ch)
+            for ch, value in item.channel.items():
+                print("", ch, value)
             for ch in item.GRAD:
                 print("", ch)
-            for ch in item.stringChannels:
-                print("", ch)
+            #for ch in item.stringChannels:
+            #    print("", ch)
             for ch in item.CHNL:
                 print("", ch)
             for ch, val in item.CHNV.items():
@@ -501,13 +501,14 @@ class LXOReader(object):
                         elif subchunkID == 'CHNS':
                             name = self.readS0()
                             value = self.readS0()
-                            item.stringChannels.append((name,value))
+                            item.channel[name] = value
                             if DEBUG: print("", name, value)
                         elif subchunkID == 'CHAN':
                             index = self.readVX()
                             datatype = self.readU2()
                             value = self.readValue(datatype)
-                            item.CHAN.append((lxoFile.channelNames[index], datatype, value))
+                            #item.CHAN.append((lxoFile.channelNames[index], datatype, value))
+                            item.channel[lxoFile.channelNames[index]] = value
                             if DEBUG: print("", lxoFile.channelNames[index], datatype, value)
                         elif subchunkID == 'CHNV':
                             name = self.readS0()

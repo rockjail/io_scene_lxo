@@ -46,7 +46,7 @@ from importlib import reload
 if "bpy" in locals():
     # ...so we need to reload our submodule(s) using importlib
     if "lxoObject" in locals():
-        reload(lxoObject)
+        reload(lxoReader)
 
 
 class _choices:
@@ -173,9 +173,9 @@ class IMPORT_OT_lxo(bpy.types.Operator):
         #bpy.types.Scene.lxo = lxo
 
         try:
-            reload(lxoObject)
-            lxoReader = lxoObject.LXOReader()
-            lxo = lxoReader.readFromFile(self.filepath)
+            reload(lxoReader)
+            lxoRead = lxoReader.LXOReader()
+            lxo = lxoRead.readFromFile(self.filepath)
         except LxoUnsupportedFileException as err:
             if bpy.app.background:
                 raise err

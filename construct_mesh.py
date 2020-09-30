@@ -55,8 +55,8 @@ def build_objects(lxo, ch):
             mesh_dict[lxoItem.id] = object_data
         elif lxoItem.typename == "camera":
             object_data = bpy.data.cameras.new(itemName)
-            object_data.lens = int(lxoItem.channel{'focalLen'})
-            #object_data.dof.aperture_fstop = lxoItem.channel{'fStop'}
+            object_data.lens = int(lxoItem.channel['focalLen'] * 1000) # saved as float in meters, we want mm
+            #object_data.dof.aperture_fstop = lxoItem.channel['fStop']
 
         
         ob = bpy.data.objects.new(name = itemName, object_data = object_data)
