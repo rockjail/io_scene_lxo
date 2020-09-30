@@ -28,7 +28,8 @@ class DebugException(Exception):
 def build_objects(lxo, ch):
     """Using the gathered data, create the objects."""
     ob_dict = {}  # Used for the parenting setup.
-    mesh_dict = {}
+    mesh_dict = {} # used to match layers to items
+    transforms_dict = {} # used to match transforms to items
 
     # Before adding any meshes or armatures go into Object mode.
     if bpy.ops.object.mode_set.poll():
@@ -39,6 +40,12 @@ def build_objects(lxo, ch):
 
     # create all items
     for lxoItem in lxo.items:
+        if lxoItem.typename in ['translation', 'rotation', 'scale']:
+            itemIndex, linkIndex = lxoItem.graphLinks['xfrmCore']
+            if itemIndex in transforms_dict:
+                transforms_dict[itemIndex][linkIndex] = lxoItem
+            else:
+                transforms_dict[itemIndex] = {linkIndex:lxoItem}
         if lxoItem.LAYR is None:
             continue
         itemName = lxoItem.name if lxoItem.name else lxoItem.vname
@@ -46,7 +53,12 @@ def build_objects(lxo, ch):
         if lxoItem.typename == "mesh":
             object_data = bpy.data.meshes.new(itemName)
             mesh_dict[lxoItem.id] = object_data
+        elif lxoItem.typename == "camera":
+            object_data = bpy.data.cameras.new(itemName)
+            object_data.lens = int(lxoItem.channel{'focalLen'})
+            #object_data.dof.aperture_fstop = lxoItem.channel{'fStop'}
 
+        
         ob = bpy.data.objects.new(name = itemName, object_data = object_data)
         scn = bpy.context.collection
         scn.objects.link(ob)
@@ -57,6 +69,26 @@ def build_objects(lxo, ch):
             # TODO: handle linkIndex, not sure if super important
             parentIndex = lxoItem.graphLinks["parent"][0]
         ob_dict[lxoItem.id] = [ob, parentIndex]
+
+    # TODO: OOO transforms from Modo...
+    for itemIndex, transforms in transforms_dict.items():
+        for _, lxoItem in sorted(transforms.items()):
+            if lxoItem.typename == "scale":
+                chanName = 'scl'
+                data = lxoItem.CHNV[chanName]
+                ob_dict[itemIndex][0].scale =(data[0][1], data[1][1], data[2][1])
+            elif lxoItem.typename == "rotation":
+                chanName = 'rot'
+                data = lxoItem.CHNV[chanName]
+                from mathutils import Euler
+                ob_dict[itemIndex][0].rotation_euler =Euler((data[0][1], data[1][1], data[2][1]), 'ZXY')
+            elif lxoItem.typename == "translation":
+                chanName = 'pos'
+                data = lxoItem.CHNV[chanName]
+                ob_dict[itemIndex][0].location =(data[0][1], data[1][1], data[2][1])
+                print(ob_dict[itemIndex])
+                print((data[0][1], data[1][1], data[2][1]))
+            
 
     # match mesh layers to items
     for lxoLayer in lxo.layers:
@@ -116,7 +148,7 @@ def build_objects(lxo, ch):
         if ob_dict[ob_key][1] is not None and ob_dict[ob_key][1] in ob_dict:
             parent_ob = ob_dict[ob_dict[ob_key][1]]
             ob_dict[ob_key][0].parent = parent_ob[0]
-            ob_dict[ob_key][0].location -= parent_ob[0].location
+            #ob_dict[ob_key][0].location -= parent_ob[0].location
             print("parenting %s to %s" % (ob_dict[ob_key][0], parent_ob))
         #elif len(ob_dict.keys()) > 1:
         #    ob_dict[ob_key][0].parent = empty

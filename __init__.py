@@ -37,7 +37,7 @@ bl_info = {
 import os
 import bpy
 
-from .lxoObject import LXOReader, LxoNoImageFoundException, LxoUnsupportedFileException
+from .lxoReader import LXOReader, LxoNoImageFoundException, LxoUnsupportedFileException
 from .construct_mesh import build_objects
 from bpy.props import StringProperty, BoolProperty
 from importlib import reload
