@@ -38,7 +38,7 @@ import os
 import bpy
 
 from .lxoReader import LXOReader, LxoNoImageFoundException, LxoUnsupportedFileException
-from .construct_mesh import build_objects
+from .build_scene import build_objects
 from bpy.props import StringProperty, BoolProperty
 from importlib import reload
 
@@ -187,8 +187,8 @@ class IMPORT_OT_lxo(bpy.types.Operator):
         try:
             # lwo.resolve_clips()
             # lwo.validate_lwo()
-            reload(construct_mesh)
-            construct_mesh.build_objects(lxo, ch)
+            reload(build_scene)
+            build_scene.build_objects(lxo, ch)
         except LxoNoImageFoundException as err:
             if bpy.app.background:
                 raise err
