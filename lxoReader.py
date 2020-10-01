@@ -155,19 +155,19 @@ class LXOFile(object):
         for item in self.__items:
             print(item.name, item.vname, item.typename)
             for ch, value in item.channel.items():
-                print("", ch, value)
+                print(" ", ch, value)
             for ch in item.GRAD:
-                print("", ch)
+                print(" ", ch)
             #for ch in item.stringChannels:
-            #    print("", ch)
+            #    print(" ", ch)
             for ch in item.CHNL:
-                print("", ch)
+                print(" ", ch)
             for ch, val in item.CHNV.items():
-                print("", ch, val)
+                print(" ", ch, val)
             for ch in item.itemTags:
-                print("", ch)
+                print(" ", ch)
             for ch in item.graphLinks:
-                print("", ch)
+                print(" ", ch)
 
 class LXOReader(object):
     def __init__(self):
