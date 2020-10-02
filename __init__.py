@@ -34,19 +34,18 @@ bl_info = {
 #
 # 1.0 First Release
 
+# When bpy is already in local, we know this is not the initial import...
+if "bpy" in locals():
+    import importlib
+    # ...so we need to reload our submodule(s) using importlib
+    if "build_scene" in locals():
+        importlib.reload(build_scene)
+
 import os
 import bpy
 
-from .lxoReader import LXOReader, LxoNoImageFoundException, LxoUnsupportedFileException
-from .build_scene import build_objects
+from . import build_scene
 from bpy.props import StringProperty, BoolProperty
-from importlib import reload
-
-# When bpy is already in local, we know this is not the initial import...
-if "bpy" in locals():
-    # ...so we need to reload our submodule(s) using importlib
-    if "lxoObject" in locals():
-        reload(lxoReader)
 
 
 class _choices:
@@ -154,56 +153,9 @@ class IMPORT_OT_lxo(bpy.types.Operator):
         return {"RUNNING_MODAL"}
 
     def execute(self, context):
-        ch = bpy.types.Scene.ch
-        ch.add_subd_mod = self.ADD_SUBD_MOD
-        ch.load_hidden = self.LOAD_HIDDEN
-        ch.clean_import = self.CLEAN_IMPORT
-        # ch.skel_to_arm = self.SKEL_TO_ARM
-        # ch.use_existing_materials = self.USE_EXISTING_MATERIALS
-        #ch.search_paths = []
-        # ch.images = {}
-        # ch.cancel_search          = False
-
-#         import cProfile
-#         import pstats
-#         profiler = cProfile.Profile()
-#         profiler.enable()
-
-        #lxo = LxoObject(self.filepath)
-        #bpy.types.Scene.lxo = lxo
-
-        try:
-            reload(lxoReader)
-            lxoRead = lxoReader.LXOReader()
-            lxo = lxoRead.readFromFile(self.filepath)
-        except LxoUnsupportedFileException as err:
-            if bpy.app.background:
-                raise err
-            else:
-                bpy.ops.message.messagebox(
-                    "INVOKE_DEFAULT", message=str(err)
-                )  # gui: no cover
-
-        try:
-            # lwo.resolve_clips()
-            # lwo.validate_lwo()
-            reload(build_scene)
-            build_scene.build_objects(lxo, ch)
-        except LxoNoImageFoundException as err:
-            if bpy.app.background:
-                raise err
-            else:
-                bpy.ops.message.messagebox(
-                    "INVOKE_DEFAULT", message=str(err), ob=True
-                )  # gui: no cover
-#         profiler.disable()
-#         #profiler.print_stats()
-#         p = pstats.Stats(profiler)
-#         p.sort_stats('time').print_stats()
-
-        del lxo
-        # With the data gathered, build the object(s).
-        return {"FINISHED"}
+        #keywords = self.as_keywords(ignore=("filepath"))
+        #return build_scene.load(self, context, filepath=self.filepath, **keywords)
+        return build_scene.load(self, context, filepath=self.filepath, ADD_SUBD_MOD=self.ADD_SUBD_MOD, LOAD_HIDDEN=self.LOAD_HIDDEN, CLEAN_IMPORT=self.CLEAN_IMPORT)
 
 
 def menu_func(self, context):  # gui: no cover

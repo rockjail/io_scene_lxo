@@ -32,12 +32,6 @@ DEBUG = False
 
 sENCODINGS = ['System Default', 'ANSI', 'UTF-8', 'Shift-JIS (Japanese)', 'EUC-JP (Japanese)', 'EUC-KR (Korea KS C 5601)', 'GB2312 (Simplified Chinese)', 'BIG5 (Traditional Chinese)']
 
-class LxoNoImageFoundException(Exception):
-    pass
-
-class LxoUnsupportedFileException(Exception):
-    pass
-
 class LXOLayer(object):
     def __init__(self, parent, name, subdLevel, psubLevel, id):
         self.__parent = parent

@@ -19,13 +19,18 @@
 import bpy
 import bmesh
 import mathutils
-#from .gen_material import lwo2BI, lwo2cycles, get_existing
-#from .bpy_debug import DebugException
-class DebugException(Exception):
-    pass
+
+# When bpy is already in local, we know this is not the initial import...
+if "bpy" in locals():
+    import importlib
+    # ...so we need to reload our submodule(s) using importlib
+    if "lxoReader" in locals():
+        importlib.reload(lxoReader)
+
+from . import lxoReader
 
 
-def build_objects(lxo, ch):
+def build_objects(lxo, clean_import):
     """Using the gathered data, create the objects."""
     ob_dict = {}  # Used for the parenting setup.
     mesh_dict = {} # used to match layers to items
@@ -36,7 +41,7 @@ def build_objects(lxo, ch):
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode="OBJECT")
 
-    if ch.clean_import:
+    if clean_import:
         bpy.ops.wm.read_homefile(use_empty=True)
 
     # create all items
@@ -192,3 +197,23 @@ def build_objects(lxo, ch):
             print("parenting %s to %s" % (ob_dict[ob_key][0], parent_ob))
         #elif len(ob_dict.keys()) > 1:
         #    ob_dict[ob_key][0].parent = empty
+
+
+def load(operator, context, filepath="",
+         ADD_SUBD_MOD = False,
+         LOAD_HIDDEN = False,
+         CLEAN_IMPORT = False):
+    
+    importlib.reload(lxoReader)
+    lxoRead = lxoReader.LXOReader()
+    lxo = lxoRead.readFromFile(filepath)
+
+
+    # lwo.resolve_clips()
+    # lwo.validate_lwo()
+    build_objects(lxo, CLEAN_IMPORT)
+
+
+    del lxo
+    # With the data gathered, build the object(s).
+    return {"FINISHED"}
