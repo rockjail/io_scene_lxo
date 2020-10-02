@@ -45,8 +45,10 @@ import os
 import bpy
 
 from . import build_scene
-from bpy.props import StringProperty, BoolProperty
-
+from bpy.props import (
+    StringProperty,
+    BoolProperty
+    )
 
 class _choices:
     """__slots__ = (
@@ -77,31 +79,6 @@ class _choices:
         #self.cancel_search = False
         #self.images = {}
         self.recursive = True
-
-
-class MESSAGE_OT_Box(bpy.types.Operator):
-    bl_idname = "message.messagebox"
-    bl_label = ""
-
-    message: bpy.props.StringProperty(
-        name="message", description="message", default="",
-    )
-    ob: bpy.props.BoolProperty(name="ob", description="ob", default=False,)
-
-    def invoke(self, context, event):  # gui: no cover
-        return context.window_manager.invoke_props_dialog(self, width=400)
-
-    def execute(self, context):  # gui: no cover
-        # self.report({'ERROR'}, self.message)
-        self.report({"INFO"}, self.message)
-        print(self.message)
-        if self.ob:
-            bpy.ops.open.browser("INVOKE_DEFAULT")
-        return {"FINISHED"}
-
-    def draw(self, context):  # gui: no cover
-        self.layout.label(text=self.message)
-        self.layout.label(text="")
 
 class IMPORT_OT_lxo(bpy.types.Operator):
     """Import LXO Operator"""
