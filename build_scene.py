@@ -30,6 +30,7 @@ def build_objects(lxo, ch):
     ob_dict = {}  # Used for the parenting setup.
     mesh_dict = {} # used to match layers to items
     transforms_dict = {} # used to match transforms to items
+    light_materials = {} # used to match lightmaterial to light for color
 
     # Before adding any meshes or armatures go into Object mode.
     if bpy.ops.object.mode_set.poll():
@@ -46,8 +47,14 @@ def build_objects(lxo, ch):
                 transforms_dict[itemIndex][linkIndex] = lxoItem
             else:
                 transforms_dict[itemIndex] = {linkIndex:lxoItem}
-        if lxoItem.LAYR is None:
+        elif lxoItem.typename == "lightMaterial":
+            itemIndex, linkIndex = lxoItem.graphLinks['parent']
+            # assuming just one lightmaterial per light right now
+            light_materials[itemIndex] = lxoItem
+            continue # don't want to add it to the scene
+        elif lxoItem.LAYR is None:
             continue
+        
         itemName = lxoItem.name if lxoItem.name else lxoItem.vname
         object_data = None
         if lxoItem.typename == "mesh":
@@ -57,15 +64,29 @@ def build_objects(lxo, ch):
             object_data = bpy.data.cameras.new(itemName)
             object_data.lens = int(lxoItem.channel['focalLen'] * 1000) # saved as float in meters, we want mm
             #object_data.dof.aperture_fstop = lxoItem.channel['fStop']
-        elif lxoItem.typename == "areaLight":
-            object_data = bpy.data.lights.new(itemName, 'AREA')
-        elif lxoItem.typename == "spotLight":
-            object_data = bpy.data.lights.new(itemName, 'SPOT')
-        elif lxoItem.typename == "pointLight":
-            object_data = bpy.data.lights.new(itemName, 'POINT')
-        elif lxoItem.typename == "sunLight":
-            object_data = bpy.data.lights.new(itemName, 'SUN')
-        
+        elif lxoItem.typename[-5:] == "Light":
+            #specific light stuff first to get the data object
+            print(lxoItem.typename)
+            if lxoItem.typename == "areaLight":
+                object_data = bpy.data.lights.new(itemName, 'AREA')
+                object_data.shape = 'RECTANGLE' # TODO: lxoItem.channel['shape']
+                object_data.size = lxoItem.channel['width']
+                object_data.size_y = lxoItem.channel['height']
+            elif lxoItem.typename == "spotLight":
+                object_data = bpy.data.lights.new(itemName, 'SPOT')
+            elif lxoItem.typename == "pointLight":
+                object_data = bpy.data.lights.new(itemName, 'POINT')
+            elif lxoItem.typename == "sunLight":
+                object_data = bpy.data.lights.new(itemName, 'SUN')
+                object_data.angle = lxoItem.channel['spread']
+
+            # general light stuff
+            if object_data is not None:
+                object_data.energy = lxoItem.channel['radiance']
+                lightMaterial = light_materials[lxoItem.id]
+                lightColor = lightMaterial.CHNV['lightCol']
+                object_data.color = (lightColor[0][1], lightColor[1][1], lightColor[2][1])
+
         ob = bpy.data.objects.new(name = itemName, object_data = object_data)
         scn = bpy.context.collection
         scn.objects.link(ob)
