@@ -28,9 +28,10 @@ if "bpy" in locals():
         importlib.reload(lxoReader)
 
 from . import lxoReader
+from mathutils import Matrix, Euler, Vector
+from itertools import chain
 
-
-def build_objects(lxo, clean_import):
+def build_objects(lxo, clean_import, global_matrix):
     """Using the gathered data, create the objects."""
     ob_dict = {}  # Used for the parenting setup.
     mesh_dict = {} # used to match layers to items
@@ -105,29 +106,36 @@ def build_objects(lxo, clean_import):
 
     # TODO: OOO transforms from Modo...
     for itemIndex, transforms in transforms_dict.items():
+        blenderObject = ob_dict[itemIndex][0]
         for _, lxoItem in sorted(transforms.items()):
             if lxoItem.typename == "scale":
                 chanName = 'scl'
                 data = lxoItem.CHNV[chanName]
-                ob_dict[itemIndex][0].scale =(data[0][1], data[1][1], data[2][1])
+                blenderObject.scale = (data[0][1], data[1][1], data[2][1])
             elif lxoItem.typename == "rotation":
                 chanName = 'rot'
                 data = lxoItem.CHNV[chanName]
-                from mathutils import Euler
-                ob_dict[itemIndex][0].rotation_euler =Euler((data[0][1], data[1][1], data[2][1]), 'ZXY')
+                rot = global_matrix @ Euler((data[0][1], data[1][1], data[2][1]), 'ZXY').to_matrix().to_4x4()
+                blenderObject.rotation_euler = rot.to_euler()
+                print((data[0][1], data[1][1], data[2][1]))
+                print(rot.to_euler())
             elif lxoItem.typename == "translation":
                 chanName = 'pos'
                 data = lxoItem.CHNV[chanName]
-                ob_dict[itemIndex][0].location =(data[0][1], data[1][1], data[2][1])
+                #mathutils.Matrix.Translation((2.0, 3.0, 4.0))
+                pos = global_matrix @ Matrix.Translation((data[0][1], data[1][1], data[2][1]))
+                blenderObject.location = pos.to_translation()
                 print(ob_dict[itemIndex])
                 print((data[0][1], data[1][1], data[2][1]))
+                print(pos.to_translation())
+        #blenderObject.matrix_world = global_matrix @ blenderObject.matrix_world
             
 
     # match mesh layers to items
     for lxoLayer in lxo.layers:
         mesh = mesh_dict[lxoLayer.referenceID]
-        # adapt to blender coord system, TODO: y and z up options, look at FBX importer
-        points = [[p[0], p[1], -p[2]] for p in lxoLayer.points]
+        # adapt to blender coord system and right up axis
+        points = [global_matrix @ Vector([p[0], p[1], -p[2]]) for p in lxoLayer.points]
         mesh.from_pydata(points, [], lxoLayer.polygons)
 
         # create uvmaps
@@ -200,10 +208,23 @@ def build_objects(lxo, clean_import):
 
 
 def load(operator, context, filepath="",
+         axis_forward='-Z',
+         axis_up='Y',
+         global_scale=1.0,
          ADD_SUBD_MOD = False,
          LOAD_HIDDEN = False,
          CLEAN_IMPORT = False):
     
+    from bpy_extras.io_utils import axis_conversion
+    global_matrix = (Matrix.Scale(global_scale, 4) @
+                     axis_conversion(from_forward=axis_forward, from_up=axis_up).to_4x4())
+    print(global_matrix)
+    # TODO figure out if these are needed...
+    # To cancel out unwanted rotation/scale on nodes.
+    global_matrix_inv = global_matrix.inverted()
+    # For transforming mesh normals.
+    global_matrix_inv_transposed = global_matrix_inv.transposed()
+
     importlib.reload(lxoReader)
     lxoRead = lxoReader.LXOReader()
     lxo = lxoRead.readFromFile(filepath)
@@ -211,7 +232,7 @@ def load(operator, context, filepath="",
 
     # lwo.resolve_clips()
     # lwo.validate_lwo()
-    build_objects(lxo, CLEAN_IMPORT)
+    build_objects(lxo, CLEAN_IMPORT, global_matrix)
 
 
     del lxo

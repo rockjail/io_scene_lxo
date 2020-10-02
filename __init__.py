@@ -49,6 +49,9 @@ from bpy.props import (
     StringProperty,
     BoolProperty
     )
+from bpy_extras.io_utils import (
+    orientation_helper
+    )
 
 class _choices:
     """__slots__ = (
@@ -80,6 +83,7 @@ class _choices:
         #self.images = {}
         self.recursive = True
 
+@orientation_helper(axis_forward='-Z', axis_up='Y')
 class IMPORT_OT_lxo(bpy.types.Operator):
     """Import LXO Operator"""
 
@@ -132,7 +136,12 @@ class IMPORT_OT_lxo(bpy.types.Operator):
     def execute(self, context):
         #keywords = self.as_keywords(ignore=("filepath"))
         #return build_scene.load(self, context, filepath=self.filepath, **keywords)
-        return build_scene.load(self, context, filepath=self.filepath, ADD_SUBD_MOD=self.ADD_SUBD_MOD, LOAD_HIDDEN=self.LOAD_HIDDEN, CLEAN_IMPORT=self.CLEAN_IMPORT)
+        return build_scene.load(self, context, filepath=self.filepath,
+                                axis_forward=self.axis_forward,
+                                axis_up=self.axis_up,
+                                ADD_SUBD_MOD=self.ADD_SUBD_MOD,
+                                LOAD_HIDDEN=self.LOAD_HIDDEN,
+                                CLEAN_IMPORT=self.CLEAN_IMPORT)
 
 
 def menu_func(self, context):  # gui: no cover
@@ -163,7 +172,6 @@ class IMPORT_PT_Debug(bpy.types.Panel):
 
 classes = (
     IMPORT_OT_lxo,
-    MESSAGE_OT_Box,
 )
 
 
