@@ -50,6 +50,7 @@ class LXOLayer(object):
         self.referenceID = id
         self.points = []
         self.polygons = []
+        self.ptags = {}
         self.uvMaps = {}
         self.uvMapsDisco = {}
 
@@ -379,10 +380,10 @@ class LXOReader(object):
                     currentLayer = lxoFile.addLayer(name, refineSubD, CCpreviewlvl, itemReference)
                     if DEBUG: print ("", name, itemReference)
                 elif chunkID == 'POLS':
-                    type = self.readID4()
-                    if type in ['SUBD', 'PSUB']:
+                    polyType = self.readID4()
+                    if polyType in ['SUBD', 'PSUB']:
                         currentLayer.isSubD = True
-                    if True: #type in['FACE', 'SUBD', 'PSUB']: TODO fgure this out
+                    if True: #polyType in['FACE', 'SUBD', 'PSUB']: TODO fgure this out
                         polyCount = 0
                         while (sizeSnap - self.modSize) < chunkSize:
                             # TODO make this proper code
@@ -396,7 +397,7 @@ class LXOReader(object):
                         currentLayer.polyCount += polyCount
                     else:
                         polygons = self.readblob(chunkSize - (sizeSnap - self.modSize))
-                    if DEBUG: print(type, polyCount)
+                    if DEBUG: print(polyType, polyCount)
                 elif chunkID == 'PNTS':
                     points = []
                     while (sizeSnap - self.modSize) < chunkSize:
@@ -435,6 +436,15 @@ class LXOReader(object):
                     if mapType == 'TXUV':
                         currentLayer.uvMapsDisco[name] = values
                     if DEBUG: print (mapType, dimension, name, len(values))
+                elif chunkID == 'PTAG':
+                    tagType = self.readID4() # MATR, PART, PICK, FONT, JUST, TEXT, SMGP
+                    ptags = []
+                    while (sizeSnap - self.modSize) < chunkSize:
+                        polsIndex = self.readVX()
+                        tagsIndex = self.readU2()
+                        ptags.append((polsIndex, tagsIndex))
+                    currentLayer.ptags[tagType] = ptags
+                    if DEBUG: print(tagType, ptags)
                 elif chunkID == 'ENVL':
                     index = self.readVX()
                     type = self.readU4()
@@ -646,8 +656,9 @@ if __name__ == '__main__':
         #lxoRead.tagsToRead.update(['ITEM','ITEMITAG', 'TAGS'])
         #lxoRead.tagsToRead.update(['IASS',])
         #lxoRead.tagsToRead.update(['DATA'])
-        lxoRead.tagsToRead.update(['CHNM', 'ITEM', 'ITEMLINK', 'ITEMLAYR', 'LAYR', 'ITEMVNAM', 'PNTS', 'VMAP', 'VMAD'])
-        lxoRead.tagsToRead.update(['IASS','IASSFLAT'])
+        #lxoRead.tagsToRead.update(['CHNM', 'ITEM', 'ITEMLINK', 'ITEMLAYR', 'LAYR', 'ITEMVNAM', 'PNTS', 'VMAP', 'VMAD'])
+        #lxoRead.tagsToRead.update(['IASS','IASSFLAT'])
+        lxoRead.tagsToRead.update(['LAYR','POLS', 'TAGS', 'PTAG'])
     
     lxo = lxoRead.readFromFile(args.sourceFile)
 
