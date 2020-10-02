@@ -22,6 +22,11 @@ import struct
 import pprint
 import argparse
 
+try:
+    from termcolor import colored
+except ModuleNotFoundError:
+    def colored(out, color):
+        return out
 global DEBUG
 DEBUG = False
 
@@ -166,8 +171,8 @@ class LXOFile(object):
                 print(" ", ch, val)
             for ch in item.itemTags:
                 print(" ", ch)
-            for ch in item.graphLinks:
-                print(" ", ch)
+            for ch, val in item.graphLinks.items():
+                print(" ", ch, val)
 
 class LXOReader(object):
     def __init__(self):
@@ -312,8 +317,8 @@ class LXOReader(object):
                     continue
 
                 if DEBUG:
-                    print (chunkID, 'green'),
-                    print (chunkSize, self.modSize)
+                    print(colored(chunkID, 'green'), end=" ")
+                    #print (chunkSize, self.modSize)
 
                 if chunkID == 'DESC':
                     presetType = self.readS0()
@@ -391,13 +396,15 @@ class LXOReader(object):
                         currentLayer.polyCount += polyCount
                     else:
                         polygons = self.readblob(chunkSize - (sizeSnap - self.modSize))
+                    if DEBUG: print(type, polyCount)
                 elif chunkID == 'PNTS':
                     points = []
                     while (sizeSnap - self.modSize) < chunkSize:
                         points.append(self.readVEC12())
                     currentLayer.points = points
+                    if DEBUG: print(len(points))
                 elif chunkID == 'VMAP':
-                    type = self.readID4()
+                    mapType = self.readID4()
                     dimension = self.readU2()
                     name = self.readS0()
                     values = {}
@@ -407,11 +414,11 @@ class LXOReader(object):
                         for val in range(dimension):
                             vv.append(self.readFloat())
                         values[index] = vv
-                    if type == 'TXUV':
+                    if mapType == 'TXUV':
                         currentLayer.uvMaps[name] = values
-                    if DEBUG: print (type, dimension, name, len(values))
+                    if DEBUG: print (mapType, dimension, name, len(values))
                 elif chunkID == 'VMAD':
-                    type = self.readID4()
+                    mapType = self.readID4()
                     dimension = self.readU2()
                     name = self.readS0()
                     values = {}
@@ -425,13 +432,14 @@ class LXOReader(object):
                             values[polyIndex][vertIndex] = vv
                         else:
                             values[polyIndex] = {vertIndex : vv}
-                    if type == 'TXUV':
+                    if mapType == 'TXUV':
                         currentLayer.uvMapsDisco[name] = values
-                    if DEBUG: print (type, dimension, name, len(values))
+                    if DEBUG: print (mapType, dimension, name, len(values))
                 elif chunkID == 'ENVL':
                     index = self.readVX()
                     type = self.readU4()
-                    subchunks = self.readblob(chunkSize - (sizeSnap - self.modSize))
+                    subchunks = self.readblob(chunkSize - (sizeSnap - self.modSize)) # TODO
+                    if DEBUG: print(index, type)
                 elif chunkID == 'BBOX':
                     minXYZ = self.readVEC12()
                     maxXYZ = self.readVEC12()
@@ -456,46 +464,47 @@ class LXOReader(object):
                             continue
 
                         if DEBUG:
-                            print (" " + subchunkID, 'yellow')
+                            print("", colored(subchunkID, 'yellow'), end=" ")
                             #print chunkSize, (sizeSnap - self.modSize)
 
                         if subchunkID == 'PAKG':
                             packageName = self.readS0()
                             reserved = self.readU4()
                             item.packages.append(packageName)
-                            if DEBUG: print("", packageName, reserved)
+                            if DEBUG: print(packageName, reserved)
                         elif subchunkID == 'XREF':
                             indexSubScene = self.readU4()
                             filename = self.readS0()
                             itemId = self.readS0()
+                            if DEBUG: print(indexSubScene, filename, itemId)
                         elif subchunkID == 'LAYR':
                             index = self.readU4()
                             flags = self.readU4()
                             rgbs = self.readU14()
                             item.LAYR = (index, flags, rgbs)
-                            if DEBUG: print ("", index, flags, rgbs)
+                            if DEBUG: print (index, flags, rgbs)
                         elif subchunkID == 'LINK':
                             graphname = self.readS0()
                             itemIndex = self.readI4()
                             linkIndex = self.readI4()
                             #item.graphLinks.append((graphname, itemIndex, linkIndex))
                             item.graphLinks[graphname] = (itemIndex, linkIndex)
-                            if DEBUG: print ("", graphname, itemIndex, linkIndex)
+                            if DEBUG: print (graphname, itemIndex, linkIndex)
                         elif subchunkID == 'CHNL':
                             name = self.readS0()
                             datatype = self.readU2()
                             value = self.readValue(datatype)
                             item.CHNL.append((name, datatype, value))
-                            if DEBUG: print("", name, datatype, value)
-                        elif subchunkID == 'GRAD':
+                            if DEBUG: print(name, datatype, value)
+                        elif False and subchunkID == 'GRAD':
                             # TODO:
                             blob = self.readblob(subchunkSize - (subsizeSnap - self.modSize))
                             item.GRAD.append(blob)
-                        elif subchunkID == 'CLNK':
+                        elif False and subchunkID == 'CLNK':
                             # TODO:
                             blob = self.readblob(subchunkSize - (subsizeSnap - self.modSize))
                             item.CLNK.append(blob)
-                        elif subchunkID == 'UCHN':
+                        elif False and subchunkID == 'UCHN':
                             # TODO:
                             blob = self.readblob(subchunkSize - (subsizeSnap - self.modSize))
                             item.CLNK.append(blob)
@@ -503,14 +512,14 @@ class LXOReader(object):
                             name = self.readS0()
                             value = self.readS0()
                             item.channel[name] = value
-                            if DEBUG: print("", name, value)
+                            if DEBUG: print(name, value)
                         elif subchunkID == 'CHAN':
                             index = self.readVX()
                             datatype = self.readU2()
                             value = self.readValue(datatype)
                             #item.CHAN.append((lxoFile.channelNames[index], datatype, value))
                             item.channel[lxoFile.channelNames[index]] = value
-                            if DEBUG: print("", lxoFile.channelNames[index], datatype, value)
+                            if DEBUG: print(lxoFile.channelNames[index], datatype, value)
                         elif subchunkID == 'CHNV':
                             name = self.readS0()
                             datatype = self.readU2()
@@ -521,22 +530,22 @@ class LXOReader(object):
                                 value = self.readValue(datatype)
                                 vec.append((cname, value))
                             item.CHNV[name] = vec # datatype?
-                            if DEBUG: print("", name, vec)
+                            if DEBUG: print(name, vec)
                         elif subchunkID == 'ITAG':
                             type = self.readID4()
                             value = self.readS0()
                             item.itemTags.append((type, value))
-                            if DEBUG: print("", type, value)
+                            if DEBUG: print(type, value)
                         elif subchunkID == 'VNAM':
                             name = self.readS0()
                             item.vname = name
-                            if DEBUG: print ("", name)
+                            if DEBUG: print (name)
                         elif subchunkID == 'UNIQ':
                             identifier = self.readS0()
-                            if DEBUG: print("", identifier)
+                            if DEBUG: print(identifier)
                         elif subchunkID == 'UIDX':
                             index = self.readU4()
-                            if DEBUG: print("", index)
+                            if DEBUG: print(index)
                         elif subchunkID == 'CHNC':
                             size = self.readU2()
                             data = ""
@@ -545,17 +554,68 @@ class LXOReader(object):
                             item.CHNC.append(data)
                             if size % 2:
                                 self.readU1() # if uneven length read one more byte
+                            if DEBUG: print(data)
                         elif subchunkID == 'BCHN':
                             operationType = self.readS0()
                             data = self.readU4()
-                            if DEBUG: print("", operationType, data)
+                            if DEBUG: print(operationType, data)
                         else:
                             blob = self.readblob(subchunkSize - (subsizeSnap - self.modSize))
-                            if DEBUG: print (" <blob>", blob)
+                            if DEBUG: print(colored("BLOB", "red"), blob)
+                elif chunkID == 'ACTN': # action layers: edit, scene, setup
+                    actionlayername = self.readS0()
+                    actionlayertype = self.readS0()
+                    actionlayerindex = self.readU4()
+                    actionLayer = lxoFile.addActionLayer(actionlayername, actionlayertype, actionlayerindex)
+                    currentActionItem = None
+
+                    if DEBUG: print (actionlayername, actionlayertype, actionlayerindex)
+
+                    while (sizeSnap - self.modSize) < chunkSize:
+                        subchunkID = self.readID4()
+                        subchunkSize = self.readU2()
+                        subsizeSnap = self.modSize
+
+                        if self.tagsToRead and chunkID + subchunkID not in self.tagsToRead:
+                            self.modSize -= subchunkSize
+                            srcfile.seek(subchunkSize, 1)
+                            continue
+
+                        if DEBUG:
+                            print("", colored(subchunkID, 'yellow'), end=" ")
+                            #print(subchunkID, self.modSize)
+
+                        if subchunkID == 'ITEM':
+                            itemReferenceID = self.readU4()
+                            currentActionItem = actionLayer.addItem(itemReferenceID)
+                            if DEBUG: print(itemReferenceID)
+                        elif subchunkID == 'CHAN':
+                            index = self.readVX()
+                            datatype = self.readU2()
+                            indexENVL = self.readVX()
+                            value = self.readValue(datatype)
+                            currentActionItem.CHAN.append((lxoFile.channelNames[index], datatype, indexENVL, value))
+                            if DEBUG: print(lxoFile.channelNames[index], datatype, indexENVL, value)
+                        elif subchunkID == 'GRAD':
+                            # TODO:
+                            blob = self.readblob(subchunkSize - (subsizeSnap - self.modSize))
+                            currentActionItem.GRAD.append(blob)
+                            if DEBUG: print(blob)
+                        elif subchunkID == 'CHNS':
+                            name = self.readS0()
+                            index = self.readVX()
+                            value = self.readS0()
+                            currentActionItem.stringChannels.append((name, lxoFile.channelNames[index], value))
+                            if DEBUG: print(lxoFile.channelNames[index], value, name)
+                        else:
+                            # TODO figure out what PRNT subchunk is for
+                            blob = self.readblob(subchunkSize - (subsizeSnap - self.modSize))
+                            if DEBUG: print(colored("BLOB", "red"), blob)
                 else:
                     #print chunkSize - (sizeSnap - self.modSize)
                     self.modSize -= chunkSize
                     srcfile.seek(chunkSize, 1) # skipping chunk
+                    if DEBUG: print(colored("BLOB skipped", "red"))
 
             self.file = None
         return lxoFile
