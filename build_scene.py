@@ -121,7 +121,7 @@ def build_objects(lxo, ch):
     # match mesh layers to items
     for lxoLayer in lxo.layers:
         mesh = mesh_dict[lxoLayer.referenceID]
-        # adapt to blender coord system, TODO: y nd z up options, look at FBX import
+        # adapt to blender coord system, TODO: y and z up options, look at FBX importer
         points = [[p[0], p[1], -p[2]] for p in lxoLayer.points]
         mesh.from_pydata(points, [], lxoLayer.polygons)
 
@@ -163,7 +163,19 @@ def build_objects(lxo, ch):
                             if pnt_id == mesh.loops[li].vertex_index:
                                 uvm.data[li].uv = [u, v]
                                 break
-
+        
+        # add materials and tags
+        lxoLayer.generateMaterials()
+        mat_slot = 0
+        for materialName, polygons in lxoLayer.materials.items():
+            newMaterial = bpy.data.materials.new(materialName)
+            mesh.materials.append(newMaterial)
+            for index in polygons:
+                mesh.polygons[index].material_index = mat_slot
+                # mesh.polygons[index].use_smooth
+            
+            mat_slot += 1
+        
         # add subd modifier is _any_ subD in mesh
         # TODO: figure out how to deal with partial SubD and PSubs
         if lxoLayer.isSubD:

@@ -39,7 +39,8 @@ class LxoUnsupportedFileException(Exception):
     pass
 
 class LXOLayer(object):
-    def __init__(self, name, subdLevel, psubLevel, id):
+    def __init__(self, parent, name, subdLevel, psubLevel, id):
+        self.__parent = parent
         self.name = name
         self.isSubD = False
         self.subdLevel = subdLevel
@@ -51,8 +52,21 @@ class LXOLayer(object):
         self.points = []
         self.polygons = []
         self.ptags = {}
+        self.materials = {}
         self.uvMaps = {}
         self.uvMapsDisco = {}
+    
+    @property
+    def parent(self):
+        return self.__parent
+    
+    def generateMaterials(self):
+        for data in self.ptags['MATR']:
+            polyIndex, tagIndex = data
+            materialName = self.parent.tagnames[tagIndex]
+            if materialName not in self.materials:
+                self.materials[materialName] = []
+            self.materials[materialName].append(polyIndex)
 
 class ActionLayer(object):
     def __init__(self, name, type, index):
@@ -109,11 +123,11 @@ class LXOFile(object):
         self.__actionLayers = []
         self.channelNames = None
         self.data = []
-        self.tags = None
+        self.tagnames = None
         self.IASS = dict()
 
     def addLayer(self, name, subdLevel, psubLevel, id):
-        layer = LXOLayer(name, subdLevel, psubLevel, id)
+        layer = LXOLayer(self, name, subdLevel, psubLevel, id)
         self.__layers.append(layer)
         return layer
     
@@ -347,7 +361,7 @@ class LXOReader(object):
                     tags = []
                     while (sizeSnap - self.modSize) < chunkSize:
                         tags.append(self.readS0())
-                    lxoFile.tags = tags
+                    lxoFile.tagnames = tags
                     if DEBUG: print(tags)
                 elif chunkID == 'CHNM':
                     count = self.readU4()
