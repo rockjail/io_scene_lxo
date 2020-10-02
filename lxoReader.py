@@ -55,6 +55,8 @@ class LXOLayer(object):
         return self.__parent
     
     def generateMaterials(self):
+        if 'MATR' not in self.ptags:
+            return
         for data in self.ptags['MATR']:
             polyIndex, tagIndex = data
             materialName = self.parent.tagnames[tagIndex]
