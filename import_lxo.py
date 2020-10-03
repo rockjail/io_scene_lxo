@@ -142,7 +142,7 @@ def build_objects(lxo, clean_import, global_matrix):
             # object_data.dof.aperture_fstop = lxoItem.channel['fStop']
         elif lxoItem.typename[-5:] == "Light":
             object_data = create_light(lxoItem, itemName, light_materials)
-        
+
         if lxoItem.LAYR is not None:
             # only locator type items should have a LAYR chunk
             # (= anything in item tree)
@@ -157,7 +157,7 @@ def build_objects(lxo, clean_import, global_matrix):
                 # TODO: handle linkIndex, not sure if super important
                 parentIndex = lxoItem.graphLinks["parent"][0]
             ob_dict[lxoItem.id] = [ob, parentIndex]
-    
+
     # figure out materials
     materials = {}
     for lxoItem in shadertree_items.values():
@@ -199,7 +199,7 @@ def build_objects(lxo, clean_import, global_matrix):
         # create uvmaps
         if len(lxoLayer.uvMapsDisco) > 0 or len(lxoLayer.uvMaps) > 0:
             create_uvmaps(lxoLayer, mesh)
-        
+
         # add materials and tags
         lxoLayer.generateMaterials()
         mat_slot = 0
@@ -212,9 +212,9 @@ def build_objects(lxo, clean_import, global_matrix):
                 mesh.polygons[index].material_index = mat_slot
                 # TODO:
                 # mesh.polygons[index].use_smooth
-            
+
             mat_slot += 1
-        
+
         # add subd modifier is _any_ subD in mesh
         # TODO: figure out how to deal with partial SubD and PSubs
         if lxoLayer.isSubD:
@@ -240,7 +240,7 @@ def load(operator, context, filepath="",
          ADD_SUBD_MOD=False,
          LOAD_HIDDEN=False,
          CLEAN_IMPORT=False):
-    
+
     from bpy_extras.io_utils import axis_conversion
     global_matrix = (Matrix.Scale(global_scale, 4) @
                      axis_conversion(from_forward=axis_forward,

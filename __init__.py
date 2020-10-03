@@ -16,6 +16,18 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+import os
+import bpy
+
+from . import import_lxo
+from bpy.props import (
+    StringProperty,
+    BoolProperty
+    )
+from bpy_extras.io_utils import (
+    orientation_helper
+    )
+
 bl_info = {
     "name": "Import Modo Objects",
     "author": "Bernd Moeller",
@@ -33,19 +45,6 @@ bl_info = {
 # Copyright (c) Bernd Moeller 2020
 #
 # 1.0 First Release
-
-import os
-import bpy
-
-from . import import_lxo
-from bpy.props import (
-    StringProperty,
-    BoolProperty
-    )
-from bpy_extras.io_utils import (
-    orientation_helper
-    )
-
 # When bpy is already in local, we know this is not the initial import...
 if "bpy" in locals():
     import importlib
