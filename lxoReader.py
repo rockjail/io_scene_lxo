@@ -668,7 +668,7 @@ if __name__ == '__main__':
         #lxoRead.tagsToRead.update(['DATA'])
         #lxoRead.tagsToRead.update(['CHNM', 'ITEM', 'ITEMLINK', 'ITEMLAYR', 'LAYR', 'ITEMVNAM', 'PNTS', 'VMAP', 'VMAD'])
         #lxoRead.tagsToRead.update(['IASS','IASSFLAT'])
-        lxoRead.tagsToRead.update(['LAYR','POLS', 'TAGS', 'PTAG'])
+        lxoRead.tagsToRead.update(['LAYR','POLS', 'TAGS', 'ITEM', 'ITEMLINK', 'ITEMCHNS'])
     
     lxo = lxoRead.readFromFile(args.sourceFile)
 

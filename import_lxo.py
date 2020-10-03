@@ -31,14 +31,79 @@ from . import lxoReader
 from mathutils import Matrix, Euler, Vector
 from itertools import chain
 
+def create_light(lxoItem, itemName, light_materials):
+    #specific light stuff first to get the data object
+    if lxoItem.typename == "areaLight":
+        object_data = bpy.data.lights.new(itemName, 'AREA')
+        object_data.shape = 'RECTANGLE' # TODO: lxoItem.channel['shape']
+        object_data.size = lxoItem.channel['width']
+        object_data.size_y = lxoItem.channel['height']
+    elif lxoItem.typename == "spotLight":
+        object_data = bpy.data.lights.new(itemName, 'SPOT')
+    elif lxoItem.typename == "pointLight":
+        object_data = bpy.data.lights.new(itemName, 'POINT')
+    elif lxoItem.typename == "sunLight":
+        object_data = bpy.data.lights.new(itemName, 'SUN')
+        object_data.angle = lxoItem.channel['spread']
+
+    # general light stuff
+    if object_data is not None:
+        object_data.energy = lxoItem.channel['radiance']
+        lightMaterial = light_materials[lxoItem.id]
+        lightColor = lightMaterial.CHNV['lightCol']
+        object_data.color = (lightColor[0][1], lightColor[1][1], lightColor[2][1])
+    
+    return object_data
+
+def create_uvmaps(lxoLayer, mesh):
+    allmaps = set(list(lxoLayer.uvMapsDisco.keys()))
+    allmaps = sorted(allmaps.union(set(list(lxoLayer.uvMaps.keys()))))
+    print(f"Adding {len(allmaps)} UV Textures")
+    if len(allmaps) > 8:
+        print(f"This mesh contains more than 8 UVMaps: {len(allmaps)}")
+
+    for uvmap_key in allmaps:
+        uvm = mesh.uv_layers.new()
+        if None == uvm:
+            break
+        uvm.name = uvmap_key
+
+    vertloops = {}
+    for v in mesh.vertices:
+        vertloops[v.index] = []
+    for l in mesh.loops:
+        vertloops[l.vertex_index].append(l.index)
+    for uvmap_key in lxoLayer.uvMaps.keys():
+        uvcoords = lxoLayer.uvMaps[uvmap_key]
+        uvm = mesh.uv_layers.get(uvmap_key)
+        if None == uvm:
+            continue
+        for pnt_id, (u, v) in uvcoords.items():
+            for li in vertloops[pnt_id]:
+                uvm.data[li].uv = [u, v]
+    for uvmap_key in lxoLayer.uvMapsDisco.keys():
+        uvcoords = lxoLayer.uvMapsDisco[uvmap_key]
+        uvm = mesh.uv_layers.get(uvmap_key)
+        if None == uvm:
+            continue
+        for pol_id in uvcoords.keys():
+            for pnt_id, (u, v) in uvcoords[pol_id].items():
+                for li in mesh.polygons[pol_id].loop_indices:
+                    if pnt_id == mesh.loops[li].vertex_index:
+                        uvm.data[li].uv = [u, v]
+                        break
+
 def build_objects(lxo, clean_import, global_matrix):
     """Using the gathered data, create the objects."""
     ob_dict = {}  # Used for the parenting setup.
     mesh_dict = {} # used to match layers to items
     transforms_dict = {} # used to match transforms to items
     light_materials = {} # used to match lightmaterial to light for color
+    shadertree_items = {} # collect all items for materials
+    
 
     # Before adding any meshes or armatures go into Object mode.
+    # TODO: is this needed?
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -47,6 +112,9 @@ def build_objects(lxo, clean_import, global_matrix):
 
     # create all items
     for lxoItem in lxo.items:
+        itemName = lxoItem.name if lxoItem.name else lxoItem.vname
+        object_data = None
+
         if lxoItem.typename in ['translation', 'rotation', 'scale']:
             itemIndex, linkIndex = lxoItem.graphLinks['xfrmCore']
             if itemIndex in transforms_dict:
@@ -57,13 +125,10 @@ def build_objects(lxo, clean_import, global_matrix):
             itemIndex, linkIndex = lxoItem.graphLinks['parent']
             # assuming just one lightmaterial per light right now
             light_materials[itemIndex] = lxoItem
-            continue # don't want to add it to the scene
-        elif lxoItem.LAYR is None:
-            continue
-        
-        itemName = lxoItem.name if lxoItem.name else lxoItem.vname
-        object_data = None
-        if lxoItem.typename == "mesh":
+        elif lxoItem.typename in ["advancedMaterial", "mask", "polyRender"]:
+            # TODO: improve this mapping
+            shadertree_items[lxoItem.id] = lxoItem
+        elif lxoItem.typename == "mesh":
             object_data = bpy.data.meshes.new(itemName)
             mesh_dict[lxoItem.id] = object_data
         elif lxoItem.typename == "camera":
@@ -71,64 +136,49 @@ def build_objects(lxo, clean_import, global_matrix):
             object_data.lens = int(lxoItem.channel['focalLen'] * 1000) # saved as float in meters, we want mm
             #object_data.dof.aperture_fstop = lxoItem.channel['fStop']
         elif lxoItem.typename[-5:] == "Light":
-            #specific light stuff first to get the data object
-            print(lxoItem.typename)
-            if lxoItem.typename == "areaLight":
-                object_data = bpy.data.lights.new(itemName, 'AREA')
-                object_data.shape = 'RECTANGLE' # TODO: lxoItem.channel['shape']
-                object_data.size = lxoItem.channel['width']
-                object_data.size_y = lxoItem.channel['height']
-            elif lxoItem.typename == "spotLight":
-                object_data = bpy.data.lights.new(itemName, 'SPOT')
-            elif lxoItem.typename == "pointLight":
-                object_data = bpy.data.lights.new(itemName, 'POINT')
-            elif lxoItem.typename == "sunLight":
-                object_data = bpy.data.lights.new(itemName, 'SUN')
-                object_data.angle = lxoItem.channel['spread']
+            object_data = create_light(lxoItem, itemName, light_materials)
+        
+        if lxoItem.LAYR is not None:
+            # only locator type items should have a LAYR chunk (= anything in item tree)
+            # create empty for object data and add to scene
+            ob = bpy.data.objects.new(name = itemName, object_data = object_data)
+            scn = bpy.context.collection
+            scn.objects.link(ob)
 
-            # general light stuff
-            if object_data is not None:
-                object_data.energy = lxoItem.channel['radiance']
-                lightMaterial = light_materials[lxoItem.id]
-                lightColor = lightMaterial.CHNV['lightCol']
-                object_data.color = (lightColor[0][1], lightColor[1][1], lightColor[2][1])
+            parentIndex = None
+            if "parent" in lxoItem.graphLinks:
+                # 0 is itemIndex, 1 is linkIndex
+                # TODO: handle linkIndex, not sure if super important
+                parentIndex = lxoItem.graphLinks["parent"][0]
+            ob_dict[lxoItem.id] = [ob, parentIndex]
+    
+    # figure out materials
+    materials = {}
+    for lxoItem in shadertree_items.values():
+        if lxoItem.typename == "advancedMaterial":
+            parentIndex = lxoItem.graphLinks['parent'][0]
+            parentItem = shadertree_items[parentIndex]
+            if parentItem.typename == 'polyRender':
+                continue
+            materialName = parentItem.channel['ptag']
+            materials[materialName] = [val[1] for val in lxoItem.CHNV['diffCol']]
 
-        ob = bpy.data.objects.new(name = itemName, object_data = object_data)
-        scn = bpy.context.collection
-        scn.objects.link(ob)
-
-        parentIndex = None
-        if "parent" in lxoItem.graphLinks:
-            # 0 is itemIndex, 1 is linkIndex
-            # TODO: handle linkIndex, not sure if super important
-            parentIndex = lxoItem.graphLinks["parent"][0]
-        ob_dict[lxoItem.id] = [ob, parentIndex]
 
     # TODO: OOO transforms from Modo...
     for itemIndex, transforms in transforms_dict.items():
         blenderObject = ob_dict[itemIndex][0]
         for _, lxoItem in sorted(transforms.items()):
             if lxoItem.typename == "scale":
-                chanName = 'scl'
-                data = lxoItem.CHNV[chanName]
+                data = lxoItem.CHNV['scl']
                 blenderObject.scale = (data[0][1], data[1][1], data[2][1])
             elif lxoItem.typename == "rotation":
-                chanName = 'rot'
-                data = lxoItem.CHNV[chanName]
+                data = lxoItem.CHNV['rot']
                 rot = global_matrix @ Euler((data[0][1], data[1][1], data[2][1]), 'ZXY').to_matrix().to_4x4()
                 blenderObject.rotation_euler = rot.to_euler()
-                print((data[0][1], data[1][1], data[2][1]))
-                print(rot.to_euler())
             elif lxoItem.typename == "translation":
-                chanName = 'pos'
-                data = lxoItem.CHNV[chanName]
-                #mathutils.Matrix.Translation((2.0, 3.0, 4.0))
+                data = lxoItem.CHNV['pos']
                 pos = global_matrix @ Matrix.Translation((data[0][1], data[1][1], data[2][1]))
                 blenderObject.location = pos.to_translation()
-                print(ob_dict[itemIndex])
-                print((data[0][1], data[1][1], data[2][1]))
-                print(pos.to_translation())
-        #blenderObject.matrix_world = global_matrix @ blenderObject.matrix_world
             
 
     # match mesh layers to items
@@ -140,51 +190,18 @@ def build_objects(lxo, clean_import, global_matrix):
 
         # create uvmaps
         if len(lxoLayer.uvMapsDisco) > 0 or len(lxoLayer.uvMaps) > 0:
-            allmaps = set(list(lxoLayer.uvMapsDisco.keys()))
-            allmaps = sorted(allmaps.union(set(list(lxoLayer.uvMaps.keys()))))
-            print(f"Adding {len(allmaps)} UV Textures")
-            if len(allmaps) > 8:
-                print(f"This mesh contains more than 8 UVMaps: {len(allmaps)}")
-
-            for uvmap_key in allmaps:
-                uvm = mesh.uv_layers.new()
-                if None == uvm:
-                    break
-                uvm.name = uvmap_key
-
-            vertloops = {}
-            for v in mesh.vertices:
-                vertloops[v.index] = []
-            for l in mesh.loops:
-                vertloops[l.vertex_index].append(l.index)
-            for uvmap_key in lxoLayer.uvMaps.keys():
-                uvcoords = lxoLayer.uvMaps[uvmap_key]
-                uvm = mesh.uv_layers.get(uvmap_key)
-                if None == uvm:
-                    continue
-                for pnt_id, (u, v) in uvcoords.items():
-                    for li in vertloops[pnt_id]:
-                        uvm.data[li].uv = [u, v]
-            for uvmap_key in lxoLayer.uvMapsDisco.keys():
-                uvcoords = lxoLayer.uvMapsDisco[uvmap_key]
-                uvm = mesh.uv_layers.get(uvmap_key)
-                if None == uvm:
-                    continue
-                for pol_id in uvcoords.keys():
-                    for pnt_id, (u, v) in uvcoords[pol_id].items():
-                        for li in mesh.polygons[pol_id].loop_indices:
-                            if pnt_id == mesh.loops[li].vertex_index:
-                                uvm.data[li].uv = [u, v]
-                                break
+            create_uvmaps(lxoLayer, mesh)
         
         # add materials and tags
         lxoLayer.generateMaterials()
         mat_slot = 0
         for materialName, polygons in lxoLayer.materials.items():
             newMaterial = bpy.data.materials.new(materialName)
+            newMaterial.diffuse_color = materials[materialName] + [1,] # adding alpha value
             mesh.materials.append(newMaterial)
             for index in polygons:
                 mesh.polygons[index].material_index = mat_slot
+                # TODO:
                 # mesh.polygons[index].use_smooth
             
             mat_slot += 1
@@ -196,7 +213,7 @@ def build_objects(lxo, clean_import, global_matrix):
             ob.modifiers.new(name="Subsurf", type="SUBSURF")
             #TODO: add smooth shading
 
-    # parent o
+    # parent objects
     for ob_key in ob_dict:
         if ob_dict[ob_key][1] is not None and ob_dict[ob_key][1] in ob_dict:
             parent_ob = ob_dict[ob_dict[ob_key][1]]
@@ -218,7 +235,6 @@ def load(operator, context, filepath="",
     from bpy_extras.io_utils import axis_conversion
     global_matrix = (Matrix.Scale(global_scale, 4) @
                      axis_conversion(from_forward=axis_forward, from_up=axis_up).to_4x4())
-    print(global_matrix)
     # TODO figure out if these are needed...
     # To cancel out unwanted rotation/scale on nodes.
     global_matrix_inv = global_matrix.inverted()
