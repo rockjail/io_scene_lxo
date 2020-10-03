@@ -38,13 +38,13 @@ bl_info = {
 if "bpy" in locals():
     import importlib
     # ...so we need to reload our submodule(s) using importlib
-    if "build_scene" in locals():
-        importlib.reload(build_scene)
+    if "import_lxo" in locals():
+        importlib.reload(import_lxo)
 
 import os
 import bpy
 
-from . import build_scene
+from . import import_lxo
 from bpy.props import (
     StringProperty,
     BoolProperty
@@ -135,8 +135,8 @@ class IMPORT_OT_lxo(bpy.types.Operator):
 
     def execute(self, context):
         #keywords = self.as_keywords(ignore=("filepath"))
-        #return build_scene.load(self, context, filepath=self.filepath, **keywords)
-        return build_scene.load(self, context, filepath=self.filepath,
+        #return import_lxo.load(self, context, filepath=self.filepath, **keywords)
+        return import_lxo.load(self, context, filepath=self.filepath,
                                 axis_forward=self.axis_forward,
                                 axis_up=self.axis_up,
                                 ADD_SUBD_MOD=self.ADD_SUBD_MOD,
