@@ -1,21 +1,26 @@
 #!/usr/bin/python
-# ##### BEGIN GPL LICENSE BLOCK #####
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 2
-#  of the License, or (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software Foundation,
-#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-#
-# ##### END GPL LICENSE BLOCK #####
+
+# MIT License
+
+# Copyright (c) 2020 Bernd Moeller
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 import os
 import struct
@@ -27,8 +32,13 @@ try:
 except ModuleNotFoundError:
     def colored(out, color):
         return out
+
 global DEBUG
 DEBUG = False
+
+# The following website was used to get nearly all information
+# about the LXO file format:
+# https://modosdk.foundry.com/wiki/File_Formats
 
 sENCODINGS = ['System Default', 'ANSI', 'UTF-8', 'Shift-JIS (Japanese)',
               'EUC-JP (Japanese)', 'EUC-KR (Korea KS C 5601)',
@@ -319,7 +329,6 @@ class LXOReader(object):
             self.modSize = size
             sceneType = self.readID4()
             # throw an error if it's not FORM
-            print(form)
             if form != b'FORM':
                 raise Exception('not a valid file')
 
@@ -346,7 +355,6 @@ class LXOReader(object):
 
             if DEBUG:
                 print(colored(chunkID, 'green'), end=" ")
-                # print (chunkSize, self.modSize)
 
             if chunkID == 'DESC':
                 presetType = self.readS0()
@@ -430,8 +438,6 @@ class LXOReader(object):
                         for i in range(vertCount):
                             vertIndex = self.readVX()
                             polyPoints.append(vertIndex)
-                        # TODO correct normals neede?!?
-                        polyPoints.reverse()
                         currentLayer.polygons.append(polyPoints)
                     currentLayer.polyCount += polyCount
                 else:
@@ -526,7 +532,6 @@ class LXOReader(object):
 
                     if DEBUG:
                         print("", colored(subchunkID, 'yellow'), end=" ")
-                        # print chunkSize, (sizeSnap - self.modSize)
 
                     if subchunkID == 'PAKG':
                         packageName = self.readS0()
@@ -644,7 +649,6 @@ class LXOReader(object):
             elif chunkID == 'ACTN':  # action layers: edit, scene, setup
                 self.__readACTN(lxoFile, sizeSnap, chunkSize)
             else:
-                # print chunkSize - (sizeSnap - self.modSize)
                 self.modSize -= chunkSize
                 self.file.seek(chunkSize, 1)  # skipping chunk
                 if DEBUG:
@@ -675,7 +679,6 @@ class LXOReader(object):
 
             if DEBUG:
                 print("", colored(subchunkID, 'yellow'), end=" ")
-                # print(subchunkID, self.modSize)
 
             if subchunkID == 'ITEM':
                 itemReferenceID = self.readU4()
@@ -721,10 +724,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument("sourceFile", help="source FILE", metavar="FILE")
     parser.add_argument("-d", "--debug", action="store_true")
-    parser.add_argument("-p", "--progress", action="store_true")
     parser.add_argument("-P", "--prettyPrint", action="store_true")
-    parser.add_argument("-f", "--filenames", action="store_true")
-    parser.add_argument("-t", "--testmode", action="store_true")
 
     args = parser.parse_args()
     if args.debug:
@@ -732,31 +732,10 @@ if __name__ == '__main__':
         DEBUG = True
 
     lxoRead = LXOReader()
-    lxoRead.showProgress = args.progress
-    # lxoRead.tagsToRead = ['LAYR', 'POLS']
-
-    if args.testmode:
-        # lxoRead.tagsToRead.update(['CHNM', 'ACTN', 'ACTNITEM', 'ACTNCHAN'])
-        # lxoRead.tagsToRead.update(['CHNM', 'ITEM','ITEMCHAN', 'ITEMCHNC',
-        #                            'ITEMPAKG'])
-        # lxoRead.tagsToRead.update(['ITEM','ITEMITAG', 'TAGS'])
-        # lxoRead.tagsToRead.update(['IASS',])
-        # lxoRead.tagsToRead.update(['DATA'])
-        # lxoRead.tagsToRead.update(['CHNM', 'ITEM', 'ITEMLINK', 'ITEMLAYR',
-        #                            'LAYR', 'ITEMVNAM', 'PNTS', 'VMAP',
-        #                            'VMAD'])
-        # lxoRead.tagsToRead.update(['IASS','IASSFLAT'])
-        lxoRead.tagsToRead.update(['LAYR', 'POLS', 'TAGS', 'ITEM', 'ITEMLINK',
-                                   'ITEMCHNS'])
+    # lxoRead.tagsToRead = []
 
     lxo = lxoRead.readFromFile(args.sourceFile)
 
     if args.prettyPrint:
         print('### pprint ###')
         lxo.pprint()
-
-    if args.testmode:
-        if "FLAT" in lxo.IASS:
-            for flat in lxo.IASS["FLAT"]:
-                if "filename" in flat[1]:
-                    print(flat[4])
