@@ -52,38 +52,6 @@ if "bpy" in locals():
     if "import_lxo" in locals():
         importlib.reload(import_lxo)
 
-
-class _choices:
-    """__slots__ = (
-        "add_subd_mod",
-        "load_hidden",
-        #"skel_to_arm",
-        #"use_existing_materials",
-        #"search_paths",
-        #"cancel_search",
-        #"images",
-        "recursive",
-    )"""
-
-    def __init__(
-        self,
-        ADD_SUBD_MOD=True,
-        LOAD_HIDDEN=False,
-        SKEL_TO_ARM=True,
-        USE_EXISTING_MATERIALS=False,
-        clean_import=False
-    ):
-        self.add_subd_mod = ADD_SUBD_MOD
-        self.load_hidden = LOAD_HIDDEN
-        self.clean_import = clean_import
-        # self.skel_to_arm = SKEL_TO_ARM
-        # self.use_existing_materials = USE_EXISTING_MATERIALS
-        # self.search_paths = []
-        # self.cancel_search = False
-        # self.images = {}
-        self.recursive = True
-
-
 @orientation_helper(axis_forward='-Z', axis_up='Y')
 class IMPORT_OT_lxo(bpy.types.Operator):
     """Import LXO Operator"""
@@ -92,9 +60,6 @@ class IMPORT_OT_lxo(bpy.types.Operator):
     bl_label = "Import LXO"
     bl_description = "Import a Modo Object file"
     bl_options = {"REGISTER", "UNDO"}
-
-    bpy.types.Scene.ch = None
-    # bpy.types.Scene.lxo = None
 
     filepath: StringProperty(
         name="File Path",
@@ -185,17 +150,12 @@ def register():
 
     bpy.types.TOPBAR_MT_file_import.append(menu_func)
 
-    ch = _choices()
-    bpy.types.Scene.ch = ch
-
 
 def unregister():  # pragma: no cover
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
     bpy.types.TOPBAR_MT_file_import.remove(menu_func)
-
-    del bpy.types.Scene.ch
 
 
 if __name__ == "__main__":  # pragma: no cover
