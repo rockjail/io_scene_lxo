@@ -167,8 +167,7 @@ def build_objects(lxo, clean_import, global_matrix):
             if parentItem.typename == 'polyRender':
                 continue
             materialName = parentItem.channel['ptag']
-            materials[materialName] = [val[1] for val in
-                                       lxoItem.CHNV['diffCol']]
+            materials[materialName] = lxoItem
 
     # TODO: OOO transforms from Modo...
     for itemIndex, transforms in transforms_dict.items():
@@ -206,12 +205,18 @@ def build_objects(lxo, clean_import, global_matrix):
         for materialName, polygons in lxoLayer.materials.items():
             newMaterial = bpy.data.materials.new(materialName)
             # adding alpha value
-            newMaterial.diffuse_color = materials[materialName] + [1, ]
+            lxoMaterial = materials[materialName]
+            diffColor = [val[1] for val in lxoMaterial.CHNV['diffCol']] + [1, ]
+            newMaterial.diffuse_color = diffColor
             mesh.materials.append(newMaterial)
             for index in polygons:
                 mesh.polygons[index].material_index = mat_slot
-                # TODO:
-                # mesh.polygons[index].use_smooth
+                mesh.polygons[index].use_smooth = True
+            # ok-ish for now
+            mesh.use_auto_smooth = True
+            # not perfect, in Modo smoothing is part of the material
+            # in blender it's part of the mesh
+            mesh.auto_smooth_angle = lxoMaterial.channel['smAngle']
 
             mat_slot += 1
 
