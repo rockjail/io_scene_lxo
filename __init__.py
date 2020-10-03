@@ -22,7 +22,7 @@ bl_info = {
     "version": (0, 0, 1),
     "blender": (2, 90, 1),
     "location": "File > Import > Modo Object (.lxo)",
-    "description": "Imports a LXO file (including any UV, Morph and Color maps.)"
+    "description": "Imports a LXO file"
     "Does nothing yet",
     "warning": "",
     "wiki_url": ""
@@ -33,13 +33,6 @@ bl_info = {
 # Copyright (c) Bernd Moeller 2020
 #
 # 1.0 First Release
-
-# When bpy is already in local, we know this is not the initial import...
-if "bpy" in locals():
-    import importlib
-    # ...so we need to reload our submodule(s) using importlib
-    if "import_lxo" in locals():
-        importlib.reload(import_lxo)
 
 import os
 import bpy
@@ -52,6 +45,14 @@ from bpy.props import (
 from bpy_extras.io_utils import (
     orientation_helper
     )
+
+# When bpy is already in local, we know this is not the initial import...
+if "bpy" in locals():
+    import importlib
+    # ...so we need to reload our submodule(s) using importlib
+    if "import_lxo" in locals():
+        importlib.reload(import_lxo)
+
 
 class _choices:
     """__slots__ = (
@@ -71,17 +72,18 @@ class _choices:
         LOAD_HIDDEN=False,
         SKEL_TO_ARM=True,
         USE_EXISTING_MATERIALS=False,
-        clean_import = False
+        clean_import=False
     ):
         self.add_subd_mod = ADD_SUBD_MOD
         self.load_hidden = LOAD_HIDDEN
         self.clean_import = clean_import
-        #self.skel_to_arm = SKEL_TO_ARM
-        #self.use_existing_materials = USE_EXISTING_MATERIALS
-        #self.search_paths = []
-        #self.cancel_search = False
-        #self.images = {}
+        # self.skel_to_arm = SKEL_TO_ARM
+        # self.use_existing_materials = USE_EXISTING_MATERIALS
+        # self.search_paths = []
+        # self.cancel_search = False
+        # self.images = {}
         self.recursive = True
+
 
 @orientation_helper(axis_forward='-Z', axis_up='Y')
 class IMPORT_OT_lxo(bpy.types.Operator):
@@ -93,7 +95,7 @@ class IMPORT_OT_lxo(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     bpy.types.Scene.ch = None
-    #bpy.types.Scene.lxo = None
+    # bpy.types.Scene.lxo = None
 
     filepath: StringProperty(
         name="File Path",
@@ -104,7 +106,8 @@ class IMPORT_OT_lxo(bpy.types.Operator):
 
     ADD_SUBD_MOD: BoolProperty(
         name="Apply SubD Modifier",
-        description="Apply the Subdivision Surface modifier to layers with Subpatches",
+        description=("Apply the Subdivision Surface modifier to layers with "
+                     "Subpatches"),
         default=True,
     )
     LOAD_HIDDEN: BoolProperty(
@@ -124,7 +127,8 @@ class IMPORT_OT_lxo(bpy.types.Operator):
     # )
     # USE_EXISTING_MATERIALS: BoolProperty(
     #     name="Use Existing Materials",
-    #     description="Use existing materials if a material by that name already exists",
+    #     description=("Use existing materials if a material by that "
+    #                  "name already exists"),
     #     default=False,
     # )
 
@@ -134,14 +138,15 @@ class IMPORT_OT_lxo(bpy.types.Operator):
         return {"RUNNING_MODAL"}
 
     def execute(self, context):
-        #keywords = self.as_keywords(ignore=("filepath"))
-        #return import_lxo.load(self, context, filepath=self.filepath, **keywords)
+        # keywords = self.as_keywords(ignore=("filepath"))
+        # return import_lxo.load(self, context, filepath=self.filepath,
+        # **keywords)
         return import_lxo.load(self, context, filepath=self.filepath,
-                                axis_forward=self.axis_forward,
-                                axis_up=self.axis_up,
-                                ADD_SUBD_MOD=self.ADD_SUBD_MOD,
-                                LOAD_HIDDEN=self.LOAD_HIDDEN,
-                                CLEAN_IMPORT=self.CLEAN_IMPORT)
+                               axis_forward=self.axis_forward,
+                               axis_up=self.axis_up,
+                               ADD_SUBD_MOD=self.ADD_SUBD_MOD,
+                               LOAD_HIDDEN=self.LOAD_HIDDEN,
+                               CLEAN_IMPORT=self.CLEAN_IMPORT)
 
 
 def menu_func(self, context):  # gui: no cover
