@@ -62,6 +62,8 @@ class LXOLayer(object):
         self.materials = {}
         self.uvMaps = {}
         self.uvMapsDisco = {}
+        self.vertexNormals = {}
+        self.vertexNormalsDisco = {}
 
     @property
     def parent(self):
@@ -465,6 +467,8 @@ class LXOReader(object):
                     values[index] = vv
                 if mapType == 'TXUV':
                     currentLayer.uvMaps[name] = values
+                elif mapType == 'NORM':
+                    currentLayer.vertexNormals[name] = values
                 if DEBUG:
                     print(mapType, dimension, name, len(values))
             elif chunkID == 'VMAD':
@@ -484,6 +488,8 @@ class LXOReader(object):
                         values[polyIndex] = {vertIndex: vv}
                 if mapType == 'TXUV':
                     currentLayer.uvMapsDisco[name] = values
+                elif mapType == 'NORM':
+                    currentLayer.vertexNormalsDisco[name] = values
                 if DEBUG:
                     print(mapType, dimension, name, len(values))
             elif chunkID == 'PTAG':

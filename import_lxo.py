@@ -98,6 +98,50 @@ def create_uvmaps(lxoLayer, mesh):
                         break
 
 
+def create_normals(lxoLayer, mesh):
+    allmaps = set(list(lxoLayer.vertexNormalsDisco.keys()))
+    allmaps = sorted(allmaps.union(set(list(lxoLayer.vertexNormals.keys()))))
+    print(f"Adding vertex normals Textures")
+    # Modo support multiple normal maps, we use the first, then cover our eyes
+    # and pretend to not see anything
+    for mapName in allmaps:
+        # now cover your eyes
+        break
+    # all good, everything is fine, the world is still spinning, open your eyes
+
+    vertloops = {}
+    for v in mesh.vertices:
+        vertloops[v.index] = []
+    for loop in mesh.loops:
+        vertloops[loop.vertex_index].append(loop.index)
+
+    vertexNormals = lxoLayer.vertexNormals[mapName]
+    for vertexIndex in vertexNormals.keys():
+        normal = [vertexNormals[vertexIndex][0],
+                  vertexNormals[vertexIndex][2],
+                  vertexNormals[vertexIndex][1]]
+        mesh.vertices[vertexIndex].normal = normal
+        print("n", normal)
+
+    try:
+        vertexNormalsDisco = lxoLayer.vertexNormalsDisco[mapName]
+    except KeyError:
+        # return early if there is no disco map
+        return
+    for key, val in vertexNormalsDisco.items():
+        print(key, val)
+    for pol_id in vertexNormalsDisco.keys():
+        for pnt_id, normal in vertexNormalsDisco[pol_id].items():
+            for li in mesh.polygons[pol_id].loop_indices:
+                if pnt_id == mesh.loops[li].vertex_index:
+                    normal = [normal[0],
+                              normal[2],
+                              normal[1]]
+                    mesh.loops[li].normal = normal
+                    print(normal)
+                    break
+
+
 def build_objects(lxo, clean_import, global_matrix):
     """Using the gathered data, create the objects."""
     ob_dict = {}  # Used for the parenting setup.
@@ -203,6 +247,9 @@ def build_objects(lxo, clean_import, global_matrix):
         # adapt to blender coord system and right up axis
         points = [global_matrix @ Vector([p[0], p[1], -p[2]]) for p in
                   lxoLayer.points]
+        # correcting default normals
+        for pointList in lxoLayer.polygons:
+            pointList.reverse()
         mesh.from_pydata(points, [], lxoLayer.polygons)
 
         # create uvmaps
@@ -233,6 +280,11 @@ def build_objects(lxo, clean_import, global_matrix):
             mesh.auto_smooth_angle = lxoMaterial.channel['smAngle']
 
             mat_slot += 1
+
+        # vertex normal maps
+        if (len(lxoLayer.vertexNormals) > 0 or
+                len(lxoLayer.vertexNormalsDisco) > 0):
+            create_normals(lxoLayer, mesh)
 
         # add subd modifier is _any_ subD in mesh
         # TODO: figure out how to deal with partial SubD and PSubs
