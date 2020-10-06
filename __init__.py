@@ -52,6 +52,7 @@ if "bpy" in locals():
     if "import_lxo" in locals():
         importlib.reload(import_lxo)
 
+
 @orientation_helper(axis_forward='-Z', axis_up='Y')
 class IMPORT_OT_lxo(bpy.types.Operator):
     """Import LXO Operator"""

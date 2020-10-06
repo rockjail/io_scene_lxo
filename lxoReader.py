@@ -556,7 +556,14 @@ class LXOReader(object):
                         graphname = self.readS0()
                         itemIndex = self.readI4()
                         linkIndex = self.readI4()
-                        item.graphLinks[graphname] = (itemIndex, linkIndex)
+                        # TODO handle properly
+                        if graphname not in item.graphLinks:
+                            item.graphLinks[graphname] = (itemIndex, linkIndex)
+                        else:
+                            if DEBUG:
+                                print(colored("ERROR duplicate graph link",
+                                              'red'),)
+                                print(graphname, itemIndex, linkIndex)
                         if DEBUG:
                             print(graphname, itemIndex, linkIndex)
                     elif subchunkID == 'CHNL':

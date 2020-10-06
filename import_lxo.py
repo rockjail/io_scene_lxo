@@ -117,10 +117,16 @@ def build_objects(lxo, clean_import, global_matrix):
     # create all items
     for lxoItem in lxo.items:
         itemName = lxoItem.name if lxoItem.name else lxoItem.vname
+        if itemName is None:
+            itemName = lxoItem.typename
         object_data = None
 
         if lxoItem.typename in ['translation', 'rotation', 'scale']:
             itemIndex, linkIndex = lxoItem.graphLinks['xfrmCore']
+            print(itemIndex, linkIndex, itemName)
+            if itemIndex == -1:
+                # seems to be some issue with texture locators
+                continue
             if itemIndex in transforms_dict:
                 transforms_dict[itemIndex][linkIndex] = lxoItem
             else:
@@ -189,7 +195,11 @@ def build_objects(lxo, clean_import, global_matrix):
 
     # match mesh layers to items
     for lxoLayer in lxo.layers:
-        mesh = mesh_dict[lxoLayer.referenceID]
+        try:
+            mesh = mesh_dict[lxoLayer.referenceID]
+        except KeyError:
+            print(f"error with {lxoLayer.referenceID} {lxoLayer.name}")
+            continue
         # adapt to blender coord system and right up axis
         points = [global_matrix @ Vector([p[0], p[1], -p[2]]) for p in
                   lxoLayer.points]
@@ -205,7 +215,11 @@ def build_objects(lxo, clean_import, global_matrix):
         for materialName, polygons in lxoLayer.materials.items():
             newMaterial = bpy.data.materials.new(materialName)
             # adding alpha value
-            lxoMaterial = materials[materialName]
+            try:
+                lxoMaterial = materials[materialName]
+            except KeyError:
+                # TODO handle material errors
+                continue
             diffColor = [val[1] for val in lxoMaterial.CHNV['diffCol']] + [1, ]
             newMaterial.diffuse_color = diffColor
             mesh.materials.append(newMaterial)
