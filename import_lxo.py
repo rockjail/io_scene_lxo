@@ -225,17 +225,18 @@ def build_objects(lxo, clean_import, global_matrix):
         for _, lxoItem in sorted(transforms.items()):
             if lxoItem.typename == "scale":
                 data = lxoItem.CHNV['scl']
-                blenderObject.scale = (data[0][1], data[1][1], data[2][1])
+                scl = (data[0][1], data[1][1], data[2][1])
+                blenderObject.scale = scl
             elif lxoItem.typename == "rotation":
                 data = lxoItem.CHNV['rot']
                 rot = Euler((data[0][1], data[1][1], data[2][1]), 'ZXY')
-                rot_matrix = global_matrix @ rot.to_matrix().to_4x4()
-                blenderObject.rotation_euler = rot_matrix.to_euler()
+                blenderObject.rotation_euler = rot
+                # TODO read euler order from item
+                blenderObject.rotation_mode = 'ZXY'
             elif lxoItem.typename == "translation":
                 data = lxoItem.CHNV['pos']
                 pos = (data[0][1], data[1][1], data[2][1])
-                pos_matrix = global_matrix @ Matrix.Translation(pos)
-                blenderObject.location = pos_matrix.to_translation()
+                blenderObject.location = pos
 
     # match mesh layers to items
     for lxoLayer in lxo.layers:
@@ -245,9 +246,8 @@ def build_objects(lxo, clean_import, global_matrix):
             print(f"error with {lxoLayer.referenceID} {lxoLayer.name}")
             continue
         # adapt to blender coord system and right up axis
-        points = [global_matrix @ Vector([p[0], p[1], -p[2]]) for p in
-                  lxoLayer.points]
-        # correcting default normals
+        points = [[p[0], p[1], -p[2]] for p in lxoLayer.points]
+        # correcting default polygon normals
         for pointList in lxoLayer.polygons:
             pointList.reverse()
         mesh.from_pydata(points, [], lxoLayer.polygons)
@@ -293,15 +293,20 @@ def build_objects(lxo, clean_import, global_matrix):
             ob.modifiers.new(name="Subsurf", type="SUBSURF")
             # TODO: add smooth shading
 
-    # parent objects
+    # update view layer for recalc of world matrices
+    bpy.context.view_layer.update()
+
+    # parent objects and transform to world orientation
     for ob_key in ob_dict:
         if ob_dict[ob_key][1] is not None and ob_dict[ob_key][1] in ob_dict:
             parent_ob = ob_dict[ob_dict[ob_key][1]]
             ob_dict[ob_key][0].parent = parent_ob[0]
             # ob_dict[ob_key][0].location -= parent_ob[0].location
             print("parenting %s to %s" % (ob_dict[ob_key][0], parent_ob))
-        # elif len(ob_dict.keys()) > 1:
-        #     ob_dict[ob_key][0].parent = empty
+        elif ob_dict[ob_key][1] is None:
+            # transform root level items with global_matrix
+            obj = ob_dict[ob_key][0]
+            obj.matrix_world = global_matrix @ obj.matrix_world
 
 
 def load(operator, context, filepath="",
