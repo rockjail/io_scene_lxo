@@ -253,7 +253,7 @@ class LXOReader(object):
             return out
         else:
             val += self.file.read(2)
-            val = '\x00' + val[1:]  # discard first byte, feels hacky...
+            val = b'\x00' + val[1:]  # discard first byte, feels hacky...
             self.modSize -= 4
             return struct.unpack(">1L", val)[0]
 
@@ -431,7 +431,7 @@ class LXOReader(object):
                 if polyType in ['SUBD', 'PSUB']:
                     currentLayer.isSubD = True
                 # TODO figure this out
-                if True:  # polyType in['FACE', 'SUBD', 'PSUB']:
+                if polyType in ['FACE', 'SUBD', 'PSUB']:
                     polyCount = 0
                     while (sizeSnap - self.modSize) < chunkSize:
                         # TODO make this proper code
