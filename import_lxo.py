@@ -99,11 +99,14 @@ def create_uvmaps(lxoLayer, mesh):
 
 
 def create_normals(lxoLayer, mesh):
+    # need to enable auto smooth first, otherwise loop normals aren't stored
+    mesh.use_auto_smooth = True
+
     allmaps = set(list(lxoLayer.vertexNormalsDisco.keys()))
     allmaps = sorted(allmaps.union(set(list(lxoLayer.vertexNormals.keys()))))
-    print(f"Adding vertex normals Textures")
-    # Modo support multiple normal maps, we use the first, then cover our eyes
-    # and pretend to not see anything
+    print(f"Adding vertex normals")
+    # Modo support multiple vertex normal maps, we use the first,
+    # then cover our eyes and pretend to not see anything
     for mapName in allmaps:
         # now cover your eyes
         break
@@ -115,31 +118,30 @@ def create_normals(lxoLayer, mesh):
     for loop in mesh.loops:
         vertloops[loop.vertex_index].append(loop.index)
 
-    vertexNormals = lxoLayer.vertexNormals[mapName]
-    for vertexIndex in vertexNormals.keys():
-        normal = [vertexNormals[vertexIndex][0],
-                  vertexNormals[vertexIndex][2],
-                  vertexNormals[vertexIndex][1]]
-        mesh.vertices[vertexIndex].normal = normal
-        print("n", normal)
+    lxoVertexNormals = lxoLayer.vertexNormals[mapName]
+
+    # not sure if the following can fail if vertex normal map misses values ?!
+    # all custom split normals pointing up.
+    normals = [lxoVertexNormals[v.index] for v in mesh.vertices]
+    mesh.normals_split_custom_set_from_vertices(normals)
 
     try:
         vertexNormalsDisco = lxoLayer.vertexNormalsDisco[mapName]
     except KeyError:
         # return early if there is no disco map
         return
-    for key, val in vertexNormalsDisco.items():
-        print(key, val)
-    for pol_id in vertexNormalsDisco.keys():
-        for pnt_id, normal in vertexNormalsDisco[pol_id].items():
-            for li in mesh.polygons[pol_id].loop_indices:
-                if pnt_id == mesh.loops[li].vertex_index:
-                    normal = [normal[0],
-                              normal[2],
-                              normal[1]]
-                    mesh.loops[li].normal = normal
-                    print(normal)
-                    break
+
+    # fill with vertex normals, maybe "(use zero-vectors to keep auto ones)" ?
+    normals = [lxoVertexNormals[loop.vertex_index] for loop in mesh.loops]
+
+    for polyIndex in vertexNormalsDisco.keys():
+        for vertIndex, normal in vertexNormalsDisco[polyIndex].items():
+            for loopIndex in mesh.polygons[polyIndex].loop_indices:
+                if vertIndex == mesh.loops[loopIndex].vertex_index:
+                    print(vertIndex, loopIndex, normal)
+                    normals[loopIndex] = normal
+
+    mesh.normals_split_custom_set(normals)
 
 
 def build_objects(lxo, clean_import, global_matrix):
