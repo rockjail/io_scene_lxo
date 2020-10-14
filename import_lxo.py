@@ -122,7 +122,12 @@ def create_normals(lxoLayer, mesh):
 
     # not sure if the following can fail if vertex normal map misses values ?!
     # all custom split normals pointing up.
-    normals = [lxoVertexNormals[v.index] for v in mesh.vertices]
+    normals = []
+    for vert in mesh.vertices:
+        try:
+            normals.append(lxoVertexNormals[vert.index])
+        except IndexError:
+            normals.append((0.0, 0.0, 0.0))
     mesh.normals_split_custom_set_from_vertices(normals)
 
     try:
@@ -293,7 +298,9 @@ def build_objects(lxo, clean_import, global_matrix):
         if lxoLayer.isSubD:
             ob = ob_dict[lxoLayer.referenceID][0]
             ob.modifiers.new(name="Subsurf", type="SUBSURF")
-            # TODO: add smooth shading
+            # TODO: clean up the smoothing mess
+            for poly in ob.data.polygons:
+                poly.use_smooth = True
 
     # update view layer for recalc of world matrices
     bpy.context.view_layer.update()
@@ -323,11 +330,6 @@ def load(operator, context, filepath="",
     global_matrix = (Matrix.Scale(global_scale, 4) @
                      axis_conversion(from_forward=axis_forward,
                                      from_up=axis_up).to_4x4())
-    # TODO figure out if these are needed...
-    # To cancel out unwanted rotation/scale on nodes.
-    global_matrix_inv = global_matrix.inverted()
-    # For transforming mesh normals.
-    global_matrix_inv_transposed = global_matrix_inv.transposed()
 
     importlib.reload(lxoReader)
     lxoRead = lxoReader.LXOReader()
