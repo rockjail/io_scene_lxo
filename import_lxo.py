@@ -34,6 +34,7 @@ from itertools import chain
 
 def create_light(lxoItem, itemName, light_materials):
     # specific light stuff first to get the data object
+    object_data = None
     if lxoItem.typename == "areaLight":
         object_data = bpy.data.lights.new(itemName, 'AREA')
         object_data.shape = 'RECTANGLE'  # TODO: lxoItem.channel['shape']
