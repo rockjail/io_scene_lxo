@@ -30,6 +30,7 @@ if "bpy" in locals():
 from . import lxoReader
 from mathutils import Matrix, Euler, Vector
 from itertools import chain
+from math import sqrt
 
 
 def create_light(lxoItem, itemName, light_materials):
@@ -40,17 +41,23 @@ def create_light(lxoItem, itemName, light_materials):
         object_data.shape = 'RECTANGLE'  # TODO: lxoItem.channel['shape']
         object_data.size = lxoItem.channel['width']
         object_data.size_y = lxoItem.channel['height']
+        area = lxoItem.channel['width'] * lxoItem.channel['height']
+        # doing some fancy math to convert modo radiance to blender power
+        power = lxoItem.channel['radiance'] * (sqrt(area) * 2) ** 2
+        object_data.energy = power
     elif lxoItem.typename == "spotLight":
         object_data = bpy.data.lights.new(itemName, 'SPOT')
+        object_data.energy = lxoItem.channel['radiance']
     elif lxoItem.typename == "pointLight":
         object_data = bpy.data.lights.new(itemName, 'POINT')
+        object_data.energy = lxoItem.channel['radiance']
     elif lxoItem.typename == "sunLight":
         object_data = bpy.data.lights.new(itemName, 'SUN')
         object_data.angle = lxoItem.channel['spread']
+        object_data.energy = lxoItem.channel['radiance']
 
     # general light stuff
     if object_data is not None:
-        object_data.energy = lxoItem.channel['radiance']
         lightMaterial = light_materials[lxoItem.id]
         lightColor = lightMaterial.CHNV['lightCol']
         object_data.color = (lightColor[0][1],
@@ -127,7 +134,7 @@ def create_normals(lxoLayer, mesh):
     for vert in mesh.vertices:
         try:
             normals.append(lxoVertexNormals[vert.index])
-        except IndexError:
+        except (IndexError, KeyError):
             normals.append((0.0, 0.0, 0.0))
     mesh.normals_split_custom_set_from_vertices(normals)
 
@@ -246,6 +253,24 @@ def build_objects(lxo, clean_import, global_matrix):
                 pos = (data[0][1], data[1][1], data[2][1])
                 blenderObject.location = pos
 
+
+    mat_lxo_blender_mapping_vector = {"diffCol": "Base Color",
+                                      "subsCol": "Subsurface Color",}
+                                      #"lumiCol": "Emission"}
+
+    material_lxo_blender_mapping = {"subsAmt": "Subsurface",
+                                    "metallic": "Metallic",
+                                    "specAmt": "Specular",
+                                    "specTint": "Specular Tint",
+                                    "rough": "Roughness",
+                                    "sheen": "Sheen",
+                                    "sheenTint": "Sheen Tint",
+                                    "coatAmt": "Clearcoat",
+                                    "coatRough": "Clearcoat Roughness",
+                                    "tranAmt": "Transmission",
+                                    "tranRough": "Transmission Roughness",
+                                    #"radiance": "Emission",
+                                    }
     # match mesh layers to items
     for lxoLayer in lxo.layers:
         try:
@@ -269,14 +294,27 @@ def build_objects(lxo, clean_import, global_matrix):
         mat_slot = 0
         for materialName, polygons in lxoLayer.materials.items():
             newMaterial = bpy.data.materials.new(materialName)
+            # TODO: this is only for principled shader
+            newMaterial.use_nodes = True
             # adding alpha value
             try:
                 lxoMaterial = materials[materialName]
             except KeyError:
                 # TODO handle material errors
                 continue
-            diffColor = [val[1] for val in lxoMaterial.CHNV['diffCol']] + [1, ]
-            newMaterial.diffuse_color = diffColor
+            # diffColor = [val[1] for val in lxoMaterial.CHNV['diffCol']] + [1, ]
+            # newMaterial.diffuse_color = diffColor
+            for lxoVal, bpyVal in mat_lxo_blender_mapping_vector.items():
+                print(lxoVal, bpyVal)
+                color = [val[1] for val in lxoMaterial.CHNV[lxoVal]] + [1, ]
+                newMaterial.node_tree.nodes['Principled BSDF'].inputs[bpyVal].default_value = color
+            emission = lxoMaterial.channel["radiance"]
+            emissionColor = [val[1] * emission for val in lxoMaterial.CHNV["lumiCol"]] + [1, ]
+            newMaterial.node_tree.nodes['Principled BSDF'].inputs["Emission"].default_value = emissionColor
+            for lxoVal, bpyVal in material_lxo_blender_mapping.items():
+                print(lxoVal, bpyVal)
+                newMaterial.node_tree.nodes['Principled BSDF'].inputs[bpyVal].default_value = lxoMaterial.channel[lxoVal]
+
             mesh.materials.append(newMaterial)
             for index in polygons:
                 mesh.polygons[index].material_index = mat_slot
