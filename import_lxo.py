@@ -23,6 +23,7 @@ import mathutils
 # When bpy is already in local, we know this is not the initial import...
 if "bpy" in locals():
     import importlib
+
     # ...so we need to reload our submodule(s) using importlib
     if "lxoReader" in locals():
         importlib.reload(lxoReader)
@@ -37,32 +38,30 @@ def create_light(lxoItem, itemName, light_materials):
     # specific light stuff first to get the data object
     object_data = None
     if lxoItem.typename == "areaLight":
-        object_data = bpy.data.lights.new(itemName, 'AREA')
-        object_data.shape = 'RECTANGLE'  # TODO: lxoItem.channel['shape']
-        object_data.size = lxoItem.channel['width']
-        object_data.size_y = lxoItem.channel['height']
-        area = lxoItem.channel['width'] * lxoItem.channel['height']
+        object_data = bpy.data.lights.new(itemName, "AREA")
+        object_data.shape = "RECTANGLE"  # TODO: lxoItem.channel['shape']
+        object_data.size = lxoItem.channel["width"]
+        object_data.size_y = lxoItem.channel["height"]
+        area = lxoItem.channel["width"] * lxoItem.channel["height"]
         # doing some fancy math to convert modo radiance to blender power
-        power = lxoItem.channel['radiance'] * (sqrt(area) * 2) ** 2
+        power = lxoItem.channel["radiance"] * (sqrt(area) * 2) ** 2
         object_data.energy = power
     elif lxoItem.typename == "spotLight":
-        object_data = bpy.data.lights.new(itemName, 'SPOT')
-        object_data.energy = lxoItem.channel['radiance']
+        object_data = bpy.data.lights.new(itemName, "SPOT")
+        object_data.energy = lxoItem.channel["radiance"]
     elif lxoItem.typename == "pointLight":
-        object_data = bpy.data.lights.new(itemName, 'POINT')
-        object_data.energy = lxoItem.channel['radiance']
+        object_data = bpy.data.lights.new(itemName, "POINT")
+        object_data.energy = lxoItem.channel["radiance"]
     elif lxoItem.typename == "sunLight":
-        object_data = bpy.data.lights.new(itemName, 'SUN')
-        object_data.angle = lxoItem.channel['spread']
-        object_data.energy = lxoItem.channel['radiance']
+        object_data = bpy.data.lights.new(itemName, "SUN")
+        object_data.angle = lxoItem.channel["spread"]
+        object_data.energy = lxoItem.channel["radiance"]
 
     # general light stuff
     if object_data is not None:
         lightMaterial = light_materials[lxoItem.id]
-        lightColor = lightMaterial.CHNV['lightCol']
-        object_data.color = (lightColor[0][1],
-                             lightColor[1][1],
-                             lightColor[2][1])
+        lightColor = lightMaterial.CHNV["lightCol"]
+        object_data.color = (lightColor[0][1], lightColor[1][1], lightColor[2][1])
 
     return object_data
 
@@ -180,8 +179,8 @@ def build_objects(lxo, clean_import, global_matrix):
             itemName = lxoItem.typename
         object_data = None
 
-        if lxoItem.typename in ['translation', 'rotation', 'scale']:
-            itemIndex, linkIndex = lxoItem.graphLinks['xfrmCore']
+        if lxoItem.typename in ["translation", "rotation", "scale"]:
+            itemIndex, linkIndex = lxoItem.graphLinks["xfrmCore"]
             print(itemIndex, linkIndex, itemName)
             if itemIndex == -1:
                 # seems to be some issue with texture locators
@@ -191,7 +190,7 @@ def build_objects(lxo, clean_import, global_matrix):
             else:
                 transforms_dict[itemIndex] = {linkIndex: lxoItem}
         elif lxoItem.typename == "lightMaterial":
-            itemIndex, linkIndex = lxoItem.graphLinks['parent']
+            itemIndex, linkIndex = lxoItem.graphLinks["parent"]
             # assuming just one lightmaterial per light right now
             light_materials[itemIndex] = lxoItem
         elif lxoItem.typename in ["advancedMaterial", "mask", "polyRender"]:
@@ -203,7 +202,7 @@ def build_objects(lxo, clean_import, global_matrix):
         elif lxoItem.typename == "camera":
             object_data = bpy.data.cameras.new(itemName)
             # saved as float in meters, we want mm
-            object_data.lens = int(lxoItem.channel['focalLen'] * 1000)
+            object_data.lens = int(lxoItem.channel["focalLen"] * 1000)
             # object_data.dof.aperture_fstop = lxoItem.channel['fStop']
         elif lxoItem.typename[-5:] == "Light":
             object_data = create_light(lxoItem, itemName, light_materials)
@@ -227,11 +226,11 @@ def build_objects(lxo, clean_import, global_matrix):
     materials = {}
     for lxoItem in shadertree_items.values():
         if lxoItem.typename == "advancedMaterial":
-            parentIndex = lxoItem.graphLinks['parent'][0]
+            parentIndex = lxoItem.graphLinks["parent"][0]
             parentItem = shadertree_items[parentIndex]
-            if parentItem.typename == 'polyRender':
+            if parentItem.typename == "polyRender":
                 continue
-            materialName = parentItem.channel['ptag']
+            materialName = parentItem.channel["ptag"]
             materials[materialName] = lxoItem
 
     # TODO: OOO transforms from Modo...
@@ -239,38 +238,40 @@ def build_objects(lxo, clean_import, global_matrix):
         blenderObject = ob_dict[itemIndex][0]
         for _, lxoItem in sorted(transforms.items()):
             if lxoItem.typename == "scale":
-                data = lxoItem.CHNV['scl']
+                data = lxoItem.CHNV["scl"]
                 scl = (data[0][1], data[1][1], data[2][1])
                 blenderObject.scale = scl
             elif lxoItem.typename == "rotation":
-                data = lxoItem.CHNV['rot']
-                rot = Euler((data[0][1], data[1][1], data[2][1]), 'ZXY')
+                data = lxoItem.CHNV["rot"]
+                rot = Euler((data[0][1], data[1][1], data[2][1]), "ZXY")
                 blenderObject.rotation_euler = rot
                 # TODO read euler order from item
-                blenderObject.rotation_mode = 'ZXY'
+                blenderObject.rotation_mode = "ZXY"
             elif lxoItem.typename == "translation":
-                data = lxoItem.CHNV['pos']
+                data = lxoItem.CHNV["pos"]
                 pos = (data[0][1], data[1][1], data[2][1])
                 blenderObject.location = pos
 
+    mat_lxo_blender_mapping_vector = {
+        "diffCol": "Base Color",
+        "subsCol": "Subsurface Color",
+    }
+    # "lumiCol": "Emission"}
 
-    mat_lxo_blender_mapping_vector = {"diffCol": "Base Color",
-                                      "subsCol": "Subsurface Color",}
-                                      #"lumiCol": "Emission"}
-
-    material_lxo_blender_mapping = {"subsAmt": "Subsurface",
-                                    "metallic": "Metallic",
-                                    "specAmt": "Specular",
-                                    "specTint": "Specular Tint",
-                                    "rough": "Roughness",
-                                    "sheen": "Sheen",
-                                    "sheenTint": "Sheen Tint",
-                                    "coatAmt": "Clearcoat",
-                                    "coatRough": "Clearcoat Roughness",
-                                    "tranAmt": "Transmission",
-                                    "tranRough": "Transmission Roughness",
-                                    #"radiance": "Emission",
-                                    }
+    material_lxo_blender_mapping = {
+        "subsAmt": "Subsurface",
+        "metallic": "Metallic",
+        "specAmt": "Specular",
+        "specTint": "Specular Tint",
+        "rough": "Roughness",
+        "sheen": "Sheen",
+        "sheenTint": "Sheen Tint",
+        "coatAmt": "Clearcoat",
+        "coatRough": "Clearcoat Roughness",
+        "tranAmt": "Transmission",
+        "tranRough": "Transmission Roughness",
+        # "radiance": "Emission",
+    }
     # match mesh layers to items
     for lxoLayer in lxo.layers:
         try:
@@ -306,14 +307,26 @@ def build_objects(lxo, clean_import, global_matrix):
             # newMaterial.diffuse_color = diffColor
             for lxoVal, bpyVal in mat_lxo_blender_mapping_vector.items():
                 print(lxoVal, bpyVal)
-                color = [val[1] for val in lxoMaterial.CHNV[lxoVal]] + [1, ]
-                newMaterial.node_tree.nodes['Principled BSDF'].inputs[bpyVal].default_value = color
+                color = [val[1] for val in lxoMaterial.CHNV[lxoVal]] + [
+                    1,
+                ]
+                newMaterial.node_tree.nodes["Principled BSDF"].inputs[
+                    bpyVal
+                ].default_value = color
             emission = lxoMaterial.channel["radiance"]
-            emissionColor = [val[1] * emission for val in lxoMaterial.CHNV["lumiCol"]] + [1, ]
-            newMaterial.node_tree.nodes['Principled BSDF'].inputs["Emission"].default_value = emissionColor
+            emissionColor = [
+                val[1] * emission for val in lxoMaterial.CHNV["lumiCol"]
+            ] + [
+                1,
+            ]
+            newMaterial.node_tree.nodes["Principled BSDF"].inputs[
+                "Emission"
+            ].default_value = emissionColor
             for lxoVal, bpyVal in material_lxo_blender_mapping.items():
                 print(lxoVal, bpyVal)
-                newMaterial.node_tree.nodes['Principled BSDF'].inputs[bpyVal].default_value = lxoMaterial.channel[lxoVal]
+                newMaterial.node_tree.nodes["Principled BSDF"].inputs[
+                    bpyVal
+                ].default_value = lxoMaterial.channel[lxoVal]
 
             mesh.materials.append(newMaterial)
             for index in polygons:
@@ -323,13 +336,12 @@ def build_objects(lxo, clean_import, global_matrix):
             mesh.use_auto_smooth = True
             # not perfect, in Modo smoothing is part of the material
             # in blender it's part of the mesh
-            mesh.auto_smooth_angle = lxoMaterial.channel['smAngle']
+            mesh.auto_smooth_angle = lxoMaterial.channel["smAngle"]
 
             mat_slot += 1
 
         # vertex normal maps
-        if (len(lxoLayer.vertexNormals) > 0 or
-                len(lxoLayer.vertexNormalsDisco) > 0):
+        if len(lxoLayer.vertexNormals) > 0 or len(lxoLayer.vertexNormalsDisco) > 0:
             create_normals(lxoLayer, mesh)
 
         # add subd modifier is _any_ subD in mesh
@@ -357,18 +369,24 @@ def build_objects(lxo, clean_import, global_matrix):
             obj.matrix_world = global_matrix @ obj.matrix_world
 
 
-def load(operator, context, filepath="",
-         axis_forward='-Z',
-         axis_up='Y',
-         global_scale=1.0,
-         ADD_SUBD_MOD=False,
-         LOAD_HIDDEN=False,
-         CLEAN_IMPORT=False):
+def load(
+    operator,
+    context,
+    filepath="",
+    axis_forward="-Z",
+    axis_up="Y",
+    global_scale=1.0,
+    ADD_SUBD_MOD=False,
+    LOAD_HIDDEN=False,
+    CLEAN_IMPORT=False,
+):
 
     from bpy_extras.io_utils import axis_conversion
-    global_matrix = (Matrix.Scale(global_scale, 4) @
-                     axis_conversion(from_forward=axis_forward,
-                                     from_up=axis_up).to_4x4())
+
+    global_matrix = (
+        Matrix.Scale(global_scale, 4)
+        @ axis_conversion(from_forward=axis_forward, from_up=axis_up).to_4x4()
+    )
 
     importlib.reload(lxoReader)
     lxoRead = lxoReader.LXOReader()
