@@ -17,8 +17,8 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-import bmesh
-import mathutils
+
+from . import lxoReader
 
 # When bpy is already in local, we know this is not the initial import...
 if "bpy" in locals():
@@ -28,9 +28,8 @@ if "bpy" in locals():
     if "lxoReader" in locals():
         importlib.reload(lxoReader)
 
-from . import lxoReader
-from mathutils import Matrix, Euler, Vector
-from itertools import chain
+
+from mathutils import Matrix, Euler
 from math import sqrt
 
 
@@ -111,7 +110,7 @@ def create_normals(lxoLayer, mesh):
 
     allmaps = set(list(lxoLayer.vertexNormalsDisco.keys()))
     allmaps = sorted(allmaps.union(set(list(lxoLayer.vertexNormals.keys()))))
-    print(f"Adding vertex normals")
+    print("Adding vertex normals")
     # Modo support multiple vertex normal maps, we use the first,
     # then cover our eyes and pretend to not see anything
     for mapName in allmaps:
