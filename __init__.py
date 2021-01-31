@@ -16,17 +16,11 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import os
 import bpy
 
 from . import import_lxo
-from bpy.props import (
-    StringProperty,
-    BoolProperty
-    )
-from bpy_extras.io_utils import (
-    orientation_helper
-    )
+from bpy.props import StringProperty, BoolProperty
+from bpy_extras.io_utils import orientation_helper
 
 bl_info = {
     "name": "Import Modo Objects",
@@ -34,11 +28,9 @@ bl_info = {
     "version": (0, 0, 1),
     "blender": (2, 90, 1),
     "location": "File > Import > Modo Object (.lxo)",
-    "description": "Imports a LXO file"
-    "Does nothing yet",
+    "description": "Imports a LXO file" "Does nothing yet",
     "warning": "",
-    "wiki_url": ""
-    "",
+    "wiki_url": "" "",
     "category": "Import-Export",
 }
 
@@ -48,12 +40,13 @@ bl_info = {
 # When bpy is already in local, we know this is not the initial import...
 if "bpy" in locals():
     import importlib
+
     # ...so we need to reload our submodule(s) using importlib
     if "import_lxo" in locals():
         importlib.reload(import_lxo)
 
 
-@orientation_helper(axis_forward='-Z', axis_up='Y')
+@orientation_helper(axis_forward="-Z", axis_up="Y")
 class IMPORT_OT_lxo(bpy.types.Operator):
     """Import LXO Operator"""
 
@@ -71,8 +64,9 @@ class IMPORT_OT_lxo(bpy.types.Operator):
 
     ADD_SUBD_MOD: BoolProperty(
         name="Apply SubD Modifier",
-        description=("Apply the Subdivision Surface modifier to layers with "
-                     "Subpatches"),
+        description=(
+            "Apply the Subdivision Surface modifier to layers with " "Subpatches"
+        ),
         default=True,
     )
     LOAD_HIDDEN: BoolProperty(
@@ -106,12 +100,16 @@ class IMPORT_OT_lxo(bpy.types.Operator):
         # keywords = self.as_keywords(ignore=("filepath"))
         # return import_lxo.load(self, context, filepath=self.filepath,
         # **keywords)
-        return import_lxo.load(self, context, filepath=self.filepath,
-                               axis_forward=self.axis_forward,
-                               axis_up=self.axis_up,
-                               ADD_SUBD_MOD=self.ADD_SUBD_MOD,
-                               LOAD_HIDDEN=self.LOAD_HIDDEN,
-                               CLEAN_IMPORT=self.CLEAN_IMPORT)
+        return import_lxo.load(
+            self,
+            context,
+            filepath=self.filepath,
+            axis_forward=self.axis_forward,
+            axis_up=self.axis_up,
+            ADD_SUBD_MOD=self.ADD_SUBD_MOD,
+            LOAD_HIDDEN=self.LOAD_HIDDEN,
+            CLEAN_IMPORT=self.CLEAN_IMPORT,
+        )
 
 
 def menu_func(self, context):  # gui: no cover
@@ -140,9 +138,7 @@ class IMPORT_PT_Debug(bpy.types.Panel):
         col.operator("open.browser", text="File Browser")
 
 
-classes = (
-    IMPORT_OT_lxo,
-)
+classes = (IMPORT_OT_lxo,)
 
 
 def register():
