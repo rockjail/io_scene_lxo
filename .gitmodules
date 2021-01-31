@@ -1,0 +1,3 @@
+[submodule "lxoReader"]
+	path = lxoReader
+	url = https://github.com/rockjail/lxoReader
