@@ -1,7 +1,7 @@
 # Blender LXO Importer
 **--> EXPERIMENTAL <--**
 
-This is and importer for [Blender](https://www.blender.org/) to import [Modo](https://www.foundry.com/products/modo) files.
+This is and importer for [Blender 4.0](https://www.blender.org/) and later to import [Modo's](https://www.foundry.com/products/modo) lxo files.
 Credit to [io_scene_lwo](https://github.com/nangtani/blender-import-lwo) which was used as a good starting point.
 
 ### Supported Features
