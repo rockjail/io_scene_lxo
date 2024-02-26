@@ -31,8 +31,8 @@ from bpy_extras.io_utils import (
 bl_info = {
     "name": "Import Modo Objects",
     "author": "Bernd Moeller",
-    "version": (0, 0, 1),
-    "blender": (2, 90, 1),
+    "version": (0, 0, 2),
+    "blender": (4, 0, 0),
     "location": "File > Import > Modo Object (.lxo)",
     "description": "Imports a LXO file"
     "Does nothing yet",
@@ -75,6 +75,11 @@ class IMPORT_OT_lxo(bpy.types.Operator):
                      "Subpatches"),
         default=True,
     )
+    LOAD_MATERIALS: BoolProperty(
+        name="Load materials",
+        description=("Load materials from the LXO file"),
+        default=False,
+    )
     LOAD_HIDDEN: BoolProperty(
         name="Load Hidden Layers",
         description="Load object layers that have been marked as hidden",
@@ -110,6 +115,7 @@ class IMPORT_OT_lxo(bpy.types.Operator):
                                axis_forward=self.axis_forward,
                                axis_up=self.axis_up,
                                ADD_SUBD_MOD=self.ADD_SUBD_MOD,
+                               LOAD_MATERIALS=self.LOAD_MATERIALS,
                                LOAD_HIDDEN=self.LOAD_HIDDEN,
                                CLEAN_IMPORT=self.CLEAN_IMPORT)
 
