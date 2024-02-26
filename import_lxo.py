@@ -29,7 +29,6 @@ from . import lxo_reader
 from mathutils import Matrix, Euler
 from math import sqrt
 import json
-from .show_message_box import ShowMessageBox
 
 
 def create_light(lxo_item: lxo_reader.LXOItem, item_name: str, light_materials: dict[str, lxo_reader.LXOItem]):
